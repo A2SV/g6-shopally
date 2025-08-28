@@ -1,0 +1,64 @@
+# -----------------------------------------------------------------------------
+# Workflow Name: Next.js Frontend CI (Build & Test)
+#
+# Description:
+# This workflow is the primary quality gate for the ShopAlly frontend.
+# It automatically runs on every push and pull request to the 'ShopAlly-web'
+# and 'main' branches to ensure that dependencies install, linting passes,
+# formatting is consistent, tests run, and the Next.js app builds successfully.
+# -----------------------------------------------------------------------------
+name: Next.js Frontend CI
+
+# -----------------------------------------------------------------------------
+# Trigger Conditions: When to run this workflow
+# -----------------------------------------------------------------------------
+on:
+  push:
+    branches:
+      - ShopAlly-web
+      - main
+    paths:
+      - "shopally-web/**"
+  pull_request:
+    branches:
+      - ShopAlly-web
+      - main
+    paths:
+      - "shopally-web/**"
+
+# -----------------------------------------------------------------------------
+# Jobs: The tasks to be executed
+# -----------------------------------------------------------------------------
+jobs:
+  verify-and-build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: shopally-web
+
+    steps:
+      - name: ✅ 1. Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ 2. Set up Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: shopally-web/package-lock.json
+
+      - name: 📦 3. Install Dependencies
+        run: npm ci
+
+      - name: 🧹 4. Run ESLint
+        run: npm run lint --if-present
+
+      - name: 🎨 5. Check Code Formatting (Prettier)
+        run: npx prettier --check .
+
+      - name: 🧪 6. Run Tests (Jest / Testing Library)
+        run: npm test --if-present
+
+      - name: 🏗️ 7. Build Next.js App
+        run: npm run build

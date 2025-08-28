@@ -1,0 +1,80 @@
+# -----------------------------------------------------------------------------
+# Workflow Name: Go Backend CI (Build & Test)
+#
+# Description:
+# This workflow is the primary quality gate for the ShopAlly backend.
+# It automatically runs on every push and pull request to the 'main' branch
+# to ensure that all code compiles, passes tests, is correctly formatted,
+# and adheres to linting standards before it can be merged.
+# -----------------------------------------------------------------------------
+name: Go Backend CI
+
+# -----------------------------------------------------------------------------
+# Trigger Conditions: When to run this workflow
+# -----------------------------------------------------------------------------
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'shopally-backend/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'shopally-backend/**'
+
+# -----------------------------------------------------------------------------
+# Jobs: The tasks to be executed
+# -----------------------------------------------------------------------------
+jobs:
+  verify-and-build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: shopally-backend
+
+    steps:
+      - name: ✅ 1. Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ 2. Set up Go Environment
+        uses: actions/setup-go@v5.0.1
+        with:
+          go-version-file: 'shopally-backend/go.mod'
+          cache: true
+
+      # --- Step 3: CODE QUALITY CHECKS ---
+      - name: 🧹 3. Run Linter (golangci-lint)
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          install-mode: goinstall
+          working-directory: shopally-backend
+
+      - name: 🎨 4. Check Code Formatting (gofmt)
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "Go code is not formatted:"
+            gofmt -l .
+            exit 1
+          fi
+
+      - name: 📦 5. Verify Go Modules
+        run: |
+          go mod tidy
+          files_to_check=""
+          [ -f go.mod ] && files_to_check="$files_to_check go.mod"
+          [ -f go.sum ] && files_to_check="$files_to_check go.sum"
+
+          if ! git diff --exit-code -- $files_to_check; then
+            echo "go.mod or go.sum is out of date after running 'go mod tidy'"
+            exit 1
+          fi
+
+      - name: 🧪 6. Run Tests (with Race Detector)
+        run: go test -v -race ./...
+
+      - name: 🏗️ 7. Build Application
+        run: go build -v ./...
