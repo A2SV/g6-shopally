@@ -17,7 +17,12 @@ func ProductPrice(c *gin.Context) {
 		return
 	}
 
-	// In a real implementation, fetch the price from a reddis cache or database
+	// Mock product price data
+	productPrices := map[string]float64{
+		"1": 19.99,
+		"2": 29.99,
+		"3": 39.99,
+	}
 
 	price, exists := productPrices[id]
 	if !exists {
