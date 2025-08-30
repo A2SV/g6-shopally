@@ -8,6 +8,7 @@ import (
 // AlibabaGateway defines the contract for fetching products from an external source.
 type AlibabaGateway interface {
 	FetchProducts(ctx context.Context, query string, filters map[string]interface{}) ([]*Product, error)
+	GetProductPrice(ctx context.Context, productID, currency string) (float64, error)
 }
 
 // LLMGateway defines the contract for a Large Language Model service

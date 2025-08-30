@@ -155,3 +155,9 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, query string, fi
 	// For dev/testing we parse the embedded mock JSON and map it.
 	return MapAliExpressResponseToProducts([]byte(mockAliExpressResponse))
 }
+
+func (a *AlibabaHTTPGateway) GetProductPrice(ctx context.Context, productID, currency string) (float64, error) {
+
+	// In the future, perform an HTTP request here using `productID` and `currency`.
+	return 19.99, nil
+}

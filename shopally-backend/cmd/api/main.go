@@ -55,19 +55,21 @@ func main() {
 		time.Duration(cfg.RateLimit.Window)*time.Second,
 	)
 
-	// Initialize router
-	router := router.SetupRouter(cfg, limiter)
-
 	// Construct mock gateways and use case for mocked search flow
 	ag := gateway.NewAlibabaHTTPGateway()
 	// ag := gateway.NewMockAlibabaGateway()
 	lg := gateway.NewMockLLMGateway()
 	uc := usecase.NewSearchProductsUseCase(ag, lg, nil)
 
+	compareService := usecase.NewCompareProductsUseCase(lg)
+	compareHandler := handler.NewCompareHandler(compareService)
+
 	// Initialize handlers (inject usecase so the router can register the
 	// handler function without receiving a handler instance).
 	handler.InjectSearchUseCase(uc)
 
+	// Initialize router
+	router := router.SetupRouter(cfg, limiter, compareHandler)
 	// Start the server
 	log.Println("Starting server on port", cfg.Server.Port)
 	if err := router.Run(":" + cfg.Server.Port); err != nil {

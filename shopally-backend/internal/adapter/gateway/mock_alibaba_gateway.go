@@ -10,6 +10,11 @@ import (
 // MockAlibabaGateway implements usecase.AlibabaGateway and returns hardcoded products.
 type MockAlibabaGateway struct{}
 
+// GetProductPrice implements domain.AlibabaGateway.
+func (m *MockAlibabaGateway) GetProductPrice(ctx context.Context, productID string, currency string) (float64, error) {
+	panic("unimplemented")
+}
+
 func NewMockAlibabaGateway() domain.AlibabaGateway {
 	return &MockAlibabaGateway{}
 }

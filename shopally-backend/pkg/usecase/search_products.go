@@ -40,3 +40,14 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 	// Return the envelope-compatible data payload
 	return map[string]interface{}{"products": products}, nil
 }
+
+func (uc *SearchProductsUseCase) GetProductPrice(ctx context.Context, productID, currency string) (float64, error) {
+	// get product price from alibaba gateway
+
+	// get exchange rate from ifx client
+
+	// convert currency using ifx client
+
+	// return converted price in PRICE struct format
+	return 0, nil
+}
