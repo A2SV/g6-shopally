@@ -11,18 +11,22 @@ type Price struct {
 
 // Product represents a product found on an e-commerce platform.
 type Product struct {
-	ID                string   `json:"id"`
-	Title             string   `json:"title"`
-	ImageURL          string   `json:"imageUrl"`
-	AIMatchPercentage int      `json:"aiMatchPercentage"`
-	Price             Price    `json:"price"`
-	ProductRating     float64  `json:"productRating"`
-	SellerScore       int      `json:"sellerScore"`
-	DeliveryEstimate  string   `json:"deliveryEstimate"`
-	SummaryBullets    []string `json:"summaryBullets"`
-	DeeplinkURL       string   `json:"deeplinkUrl"`
-	TaxRate           float64  `json:"taxRate"`
-	Discount          float64  `json:"discount"`
+	ID                 string   `json:"id"`
+	Title              string   `json:"title"`
+	ImageURL           string   `json:"imageUrl"`
+	AIMatchPercentage  int      `json:"aiMatchPercentage"`
+	Price              Price    `json:"price"`
+	ProductRating      float64  `json:"productRating"`
+	SellerScore        int      `json:"sellerScore"`
+	DeliveryEstimate   string   `json:"deliveryEstimate"`
+	Description        string   `json:"description"`
+	CustomerHighlights string   `json:"customerHighlights"`
+	CustomerReview     string   `json:"customerReview"`
+	NumberSold         int      `json:"numberSold"`
+	SummaryBullets     []string `json:"summaryBullets"`
+	DeeplinkURL        string   `json:"deeplinkUrl"`
+	TaxRate            float64  `json:"taxRate"`
+	Discount           float64  `json:"discount"`
 }
 
 // Synthesis captures comparison insights for a product.

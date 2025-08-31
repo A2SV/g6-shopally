@@ -60,4 +60,18 @@ func main() {
 	for range ticker.C {
 		warm()
 	}
+
+	ctx := context.Background()
+
+	fcm, err := gateway.NewFCMGateway(ctx, gateway.FCMGatewayConfig{})
+	if err != nil {
+		log.Printf("FCM init failed (alerts disabled): %v", err)
+	} else if t := os.Getenv("FCM_TEST_TOKEN"); t != "" {
+		if _, err := fcm.Send(ctx, t, "ShopAlly Alerts Ready", "Worker can send push notifications.", nil); err != nil {
+			log.Printf("FCM test send failed: %v", err)
+		}
+	}
+
+	// TODO: Pass `fcm` into the alerts worker when B2.4 is ready
+
 }

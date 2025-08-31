@@ -14,6 +14,8 @@ type AlibabaGateway interface {
 // to parse user intent from a search query.
 type LLMGateway interface {
 	ParseIntent(ctx context.Context, query string) (map[string]interface{}, error)
+	// SummarizeProduct generates short bullet points for a product based on provided fields.
+	SummarizeProduct(ctx context.Context, p *Product) ([]string, error)
 	CompareProducts(ctx context.Context, productDetails []*Product) (map[string]interface{}, error)
 }
 
