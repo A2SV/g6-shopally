@@ -18,7 +18,7 @@ func main() {
 	}
 
 	rc := platform.NewRedisClient(cfg.Redis.Host, cfg.Redis.Port, cfg.Redis.Password, cfg.Redis.DB)
-	if err := rc.Ping(context.Background()); err != nil {
+	if err = rc.Ping(context.Background()); err != nil {
 		log.Fatalf("redis ping: %v", err)
 	}
 	cache := gateway.NewRedisCache(rc.Client, cfg.Redis.KeyPrefix)
