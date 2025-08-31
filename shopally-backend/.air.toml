@@ -1,0 +1,50 @@
+# Air configuration for ShopAlly backend (API)
+# Docs: https://github.com/air-verse/air
+
+root = "."
+# Where compiled binaries and temp files go
+tmp_dir = "tmp"
+
+[build]
+# Build the API binary on change
+cmd = "go build -o ./tmp/api ./cmd/api"
+# Run this binary after a successful build
+bin = "./tmp/api"
+# File extensions to watch
+include_ext = ["go", "mod", "sum", "yaml", "yml", "json"]
+# Directories to watch for changes
+include_dir = ["cmd", "internal", "pkg", "configs"]
+# Directories to ignore
+exclude_dir = ["tmp", "vendor", "node_modules", ".git", "dist"]
+# Ignore test files for rebuilds
+exclude_regex = ["_test\\.go"]
+# Debounce delay in ms
+delay = 500
+# Stop on build error
+stop_on_error = true
+# Try graceful shutdown first
+send_interrupt = true
+kill_delay = 500
+
+[log]
+# Show timestamps in Air logs
+ time = true
+
+[color]
+ main = "cyan"
+ watcher = "yellow"
+ build = "green"
+ runner = "magenta"
+ error = "red"
+
+[misc]
+ clean_on_exit = true
+
+# Environment variables for runtime (optional; Viper reads YAML by default)
+[env]
+ APP_ENV = "dev"
+ # HTTP_PORT = "8080"   # Uncomment to override server.port
+ # FX_API_URL = "https://api.exchangerate.host/convert?from={FROM}&to={TO}"
+ # FX_API_KEY = ""
+ # REDIS_HOST = "localhost"
+ # REDIS_PORT = "6379"

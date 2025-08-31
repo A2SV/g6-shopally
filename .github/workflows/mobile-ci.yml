@@ -1,0 +1,80 @@
+# -----------------------------------------------------------------------------
+# Workflow Name: Flutter Mobile CI
+#
+# Description:
+# This workflow runs on push and pull requests to main branches for the
+# Flutter mobile project. It performs tests and builds the app.
+# -----------------------------------------------------------------------------
+name: Flutter Mobile CI
+
+# -----------------------------------------------------------------------------
+# Trigger Conditions
+# -----------------------------------------------------------------------------
+on:
+  push:
+    branches:
+      - main
+      - ShopallyMobile-main
+    paths:
+      - 'shopallymobile/**'
+  pull_request:
+    branches:
+      - main
+      - ShopallyMobile-main
+    paths:
+      - 'shopallymobile/**'
+
+# -----------------------------------------------------------------------------
+# Jobs: Tasks to execute
+# -----------------------------------------------------------------------------
+jobs:
+  flutter-ci:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: shopallymobile
+
+    steps:
+      # Step 1: Checkout repository
+      - name: ✅ 1. Checkout Repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Flutter
+      - name: ⚙️ 2. Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+          cache: true
+
+      # Step 3: Get Flutter dependencies
+      - name: 📦 3. Install Dependencies
+        run: flutter pub get
+
+      # Step 4: Run unit tests
+      - name: 🧪 4. Run Tests
+        run: flutter test --coverage
+
+      # Step 5: Check code formatting
+      - name: 🎨 5. Check Code Formatting
+        run: |
+          if [[ -n $(flutter format --set-exit-if-changed .) ]]; then
+            echo "Some files are not formatted correctly."
+            exit 1
+          fi
+
+      # Step 6: Build the app (APK)
+      - name: 📱 6. Build APK
+        run: flutter build apk --release
+
+      # Optional: Build iOS app (if macOS runner)
+      # - name: 📱 7. Build iOS
+      #   runs-on: macos-latest
+      #   run: flutter build ios --release
+
+      # Optional: Upload artifacts (APK/coverage)
+      # - name: 📤 8. Upload Artifacts
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: build-apk
+      #     path: build/app/outputs/flutter-apk/app-release.apk
