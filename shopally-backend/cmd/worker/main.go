@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"log"
-	"time"
 	"os"
+	"time"
 
 	"github.com/shopally-ai/internal/adapter/gateway"
 	"github.com/shopally-ai/internal/config"
@@ -42,7 +42,9 @@ func main() {
 
 	ctx := context.Background()
 
-	fcm, err := gateway.NewFCMGateway(ctx, gateway.FCMGatewayConfig{})
+	// Initialize FCM; predeclare to avoid shadowing err with :=
+	var fcm *gateway.FCMGateway
+	fcm, err = gateway.NewFCMGateway(ctx, gateway.FCMGatewayConfig{})
 	if err != nil {
 		log.Printf("FCM init failed (alerts disabled): %v", err)
 	} else if t := os.Getenv("FCM_TEST_TOKEN"); t != "" {
