@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"log"
-	"time"
 	"os"
+	"time"
 
 	"github.com/shopally-ai/internal/adapter/gateway"
 	"github.com/shopally-ai/internal/config"
@@ -39,11 +39,6 @@ func main() {
 	}
 
 	warm()
-	ticker := time.NewTicker(30 * time.Minute)
-	defer ticker.Stop()
-	for range ticker.C {
-		warm()
-	}
 
 	ctx := context.Background()
 
@@ -57,4 +52,10 @@ func main() {
 	}
 
 	// TODO: pass `fcm` into the alerts worker when B2.4 is ready.
+
+	ticker := time.NewTicker(30 * time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		warm()
+	}
 }
