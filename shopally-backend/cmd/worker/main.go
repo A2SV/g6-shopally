@@ -42,12 +42,12 @@ func main() {
 
 	ctx := context.Background()
 
-	fcm, err := gateway.NewFCMGateway(ctx, gateway.FCMGatewayConfig{})
-	if err != nil {
-		log.Printf("FCM init failed (alerts disabled): %v", err)
+	fcm, fcmErr := gateway.NewFCMGateway(ctx, gateway.FCMGatewayConfig{})
+	if fcmErr != nil {
+		log.Printf("FCM init failed (alerts disabled): %v", fcmErr)
 	} else if t := os.Getenv("FCM_TEST_TOKEN"); t != "" {
-		if _, err := fcm.Send(ctx, t, "ShopAlly Alerts Ready", "Worker can send push notifications.", nil); err != nil {
-			log.Printf("FCM test send failed: %v", err)
+		if _, sendErr := fcm.Send(ctx, t, "ShopAlly Alerts Ready", "Worker can send push notifications.", nil); sendErr != nil {
+			log.Printf("FCM test send failed: %v", sendErr)
 		}
 	}
 
