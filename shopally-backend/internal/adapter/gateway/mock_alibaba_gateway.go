@@ -2,6 +2,8 @@ package gateway
 
 import (
 	"context"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/shopally-ai/pkg/domain"
@@ -16,6 +18,51 @@ func NewMockAlibabaGateway() domain.AlibabaGateway {
 
 func (m *MockAlibabaGateway) FetchProducts(ctx context.Context, query string, filters map[string]interface{}) ([]*domain.Product, error) {
 	fxTs, _ := time.Parse(time.RFC3339, "2025-08-22T10:00:00Z")
+
+	// If caller requested a specific product_id, return a simple inline mock
+	// product for easier local testing (no external file required).
+	if filters != nil {
+		if v, ok := filters["product_id"]; ok {
+			switch t := v.(type) {
+			case string:
+				if strings.TrimSpace(t) == "33006951782" {
+					return []*domain.Product{
+						{
+							ID:                "33006951782",
+							Title:             "Mock Sample Phone",
+							ImageURL:          "https://via.placeholder.com/300",
+							AIMatchPercentage: 90,
+							Price:             domain.Price{ETB: 0, USD: 15.90, FXTimestamp: fxTs},
+							ProductRating:     4.5,
+							SellerScore:       90,
+							DeliveryEstimate:  "7-15 days",
+							Description:       "Inline mock sample product used for price tests.",
+							NumberSold:        1234,
+							DeeplinkURL:       "https://www.aliexpress.com/item/33006951782.html",
+						},
+					}, nil
+				}
+			case int:
+				if strconv.Itoa(t) == "33006951782" {
+					return []*domain.Product{
+						{
+							ID:                "33006951782",
+							Title:             "Mock Sample Phone",
+							ImageURL:          "https://via.placeholder.com/300",
+							AIMatchPercentage: 90,
+							Price:             domain.Price{ETB: 0, USD: 15.90, FXTimestamp: fxTs},
+							ProductRating:     4.5,
+							SellerScore:       90,
+							DeliveryEstimate:  "7-15 days",
+							Description:       "Inline mock sample product used for price tests.",
+							NumberSold:        1234,
+							DeeplinkURL:       "https://www.aliexpress.com/item/33006951782.html",
+						},
+					}, nil
+				}
+			}
+		}
+	}
 
 	products := []*domain.Product{
 		{

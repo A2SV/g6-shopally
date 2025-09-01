@@ -85,8 +85,12 @@ func main() {
 	uc := usecase.NewSearchProductsUseCase(ag, lg, nil)
 	searchHandler := handler.NewSearchHandler(uc)
 
+	// Price service & handler
+	priceSvc := usecase.New(ag)
+	priceHandler := handler.NewPriceHandler(priceSvc)
+
 	// Initialize router
-	router := router.SetupRouter(cfg, limiter, searchHandler)
+	router := router.SetupRouter(cfg, limiter, searchHandler, priceHandler)
 
 	// Start the server
 	log.Println("Starting server on port", cfg.Server.Port)
