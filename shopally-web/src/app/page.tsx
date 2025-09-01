@@ -74,7 +74,7 @@ export default function Home() {
               HTML Classes: <strong>{htmlClasses}</strong>
             </p>
             <p className="text-yellow-700">
-              Has 'dark' class:{" "}
+              Has dark class:{" "}
               <strong>{htmlClasses.includes("dark") ? "YES" : "NO"}</strong>
             </p>
             <p className="text-yellow-700">

@@ -1,16 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {Search} from "lucide-react";
 import { Sun, Moon,MessageCircleMore, ArrowRight } from "lucide-react";
-import CardComponent from "../../components/home-page-component/page"
+import Image from "next/image";
 
 export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
   const [lang, setLang] = useState("EN");
   const [message, setMessage] = useState<string[]>([]);
   const [input, setinput] = useState("");
-  const [bottomSearch, setBottomSearch] = useState(false);
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
@@ -53,7 +51,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-yellow-400">
-              <img src="/images/frame.png" alt="" />
+              <Image src="/images/frame.png" alt="" />
             </div>
             <span
               className={`font-bold text-lg ${

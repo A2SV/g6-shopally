@@ -1,5 +1,6 @@
 import React from "react";
 import { Star } from "lucide-react";
+import Image from "next/image";
 
 interface CardComponentProps {
   mode: "dark" | "light";
@@ -23,7 +24,7 @@ const CardComponent: React.FC<CardComponentProps> = ({mode}) => {
       }  `}
     >
       <div className="h-[40%] grid place-items-center rounded-tl-[11px] rounded-tr-[11px] bg-amber-300">
-        <img src="#" alt="Start Mixer" className=" justify-center text-2xl " />
+        <Image src="#" alt="Start Mixer" className=" justify-center text-2xl " />
       </div>
       <div className=" h-[60%]  p-4 ">
         <h6

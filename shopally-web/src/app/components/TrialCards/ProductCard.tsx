@@ -2,6 +2,7 @@
 "use client";
 
 import type { Product, SavedItem } from "@/types/types";
+import Image from "next/image";
 
 interface ProductCardProps {
   product: Product;
@@ -14,13 +15,12 @@ export default function ProductCard({
   product,
   savedItems,
   saveItem,
-  removeItem,
 }: ProductCardProps) {
   const isSaved = savedItems.some((i) => i.id === product.id);
 
   return (
     <div className="border rounded-lg shadow-sm p-4 flex flex-col items-center">
-      <img
+      <Image
         src={product.imageUrl}
         alt={product.title}
         className="w-32 h-32 object-cover"

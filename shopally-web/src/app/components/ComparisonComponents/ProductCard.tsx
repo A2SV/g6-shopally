@@ -3,12 +3,13 @@ import { Product } from "@/types/Compare/Comparison";
 import { FaHeart } from "react-icons/fa";
 import { FaCheck } from "react-icons/fa6";
 import { IoIosStar } from "react-icons/io";
+import Image from "next/image";
 
 export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow p-6 space-y-6 w-full max-w-md mx-auto lg:max-w-none">
       <div className="aspect-square bg-gray-50 rounded-xl overflow-hidden">
-        <img
+        <Image
           src={product.imageUrl}
           alt={product.title}
           className="w-full h-full object-cover"

@@ -6,7 +6,7 @@ import ToggleSwitch from "@/app/components/saved-items/ToggleSwitch";
 import { Trash2 } from "lucide-react";
 import { SavedItemUI } from "../../../types/types";
 import Rating from "./Rating";
-
+import Image from "next/image";
 // Extend SavedItemUI with optional callbacks
 interface SavedItemCardProps extends SavedItemUI {
   onRemove?: (id: string) => void;
@@ -24,10 +24,8 @@ export default function SavedItemCard({
   seller,
   checked,
   priceAlertOn,
-  placeholderText,
   id,
   onRemove,
-  onUpdatePrice,
   onToggleAlert,
 }: SavedItemCardProps) {
   const { isDarkMode } = useDarkMode();
@@ -42,7 +40,7 @@ export default function SavedItemCard({
     >
       {/* Image container */}
       <div className="relative w-full h-44 bg-gray-200 flex items-center justify-center text-3xl font-bold text-gray-400">
-        <img
+        <Image
           src={imageUrl}
           alt={title}
           className="w-full h-full object-cover"

@@ -1,6 +1,7 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
+import Image from "next/image";
 
 const Header = () => {
   const { data: session } = useSession();
@@ -12,7 +13,7 @@ const Header = () => {
       {session ? (
         <div className="flex items-center gap-4">
           {session.user?.image && (
-            <img
+            <Image
               src={session.user.image}
               alt={session.user.name || "User"}
               className="w-8 h-8 rounded-full"

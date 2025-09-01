@@ -1,14 +1,9 @@
-// shopally-web/src/hooks/useSavedItems.ts
 "use client";
 
 import type { SavedItem, SavedItemUI } from "@/types/types";
 import { useCallback, useEffect, useState } from "react";
 
 const LOCAL_DB_KEY = "itemsList";
-
-interface LocalDb {
-  savedItems: SavedItem[];
-}
 
 const loadLocalDb = (): { savedItems: SavedItemUI[] } => {
   if (typeof window === "undefined") return { savedItems: [] };
@@ -21,7 +16,7 @@ const loadLocalDb = (): { savedItems: SavedItemUI[] } => {
   }
 };
 
-export const useSavedItems = (maxItems = 50) => {
+export const useSavedItems = () => {
   const [savedItems, setSavedItems] = useState<SavedItemUI[]>([]);
 
   useEffect(() => {
@@ -38,11 +33,11 @@ export const useSavedItems = (maxItems = 50) => {
         oldPrice: prevItem?.oldPrice,
         seller: prevItem?.seller || "Unknown",
         checked: prevItem?.checked || "N/A",
-        priceAlertOn: prevItem?.priceAlertOn ?? false, // make sure boolean
+        priceAlertOn: prevItem?.priceAlertOn ?? false,
         placeholderText: "IMG",
       };
 
-      let newList = prev.filter((i) => i.id !== item.id);
+      const newList = prev.filter((i) => i.id !== item.id);
       newList.push(uiItem);
 
       localStorage.setItem(
