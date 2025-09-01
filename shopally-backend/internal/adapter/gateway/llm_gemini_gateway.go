@@ -26,7 +26,49 @@ type GeminiLLMGateway struct {
 
 // CompareProducts implements domain.LLMGateway.
 func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails []*domain.Product) (map[string]interface{}, error) {
-	panic("unimplemented")
+	if len(productDetails) == 0 {
+		return nil, fmt.Errorf("at least one product is required")
+	}
+
+	// Build compact JSON payload for LLM
+	req := struct {
+		Products []*domain.Product `json:"products"`
+	}{Products: productDetails}
+
+	b, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal products: %w", err)
+	}
+
+	// Language hint
+	lang := "en"
+	if v := ctx.Value(contextkeys.RespLang); v != nil {
+		if s, ok := v.(string); ok && s != "" {
+			lang = s
+		}
+	}
+
+	prompt := "You are an assistant that compares e-commerce products. Return STRICT JSON only, no prose, with this shape: {\n  \"comparison\": [ { \"product\": <original product>, \"synthesis\": { \"pros\": [..], \"cons\": [..], \"isBestValue\": <bool>, \"features\": { <k>: <v> } } } ]\n}."
+	if lang == "am" {
+		prompt += " Respond in Amharic (am)."
+	} else {
+		prompt += " Respond in English (en)."
+	}
+	prompt += "\nProducts JSON: " + string(b)
+
+	// Call LLM
+	text, err := g.call(ctx, prompt)
+	if err != nil {
+		return nil, fmt.Errorf("LLM API call failed: %w", err)
+	}
+
+	clean := extractJSON(text)
+	var out map[string]interface{}
+	if err := json.Unmarshal([]byte(clean), &out); err != nil {
+		return nil, fmt.Errorf("failed to parse LLM response: %w", err)
+	}
+
+	return out, nil
 }
 
 // NewGeminiLLMGateway creates a new gateway using the GEMINI_API_KEY from env if apiKey is empty.
@@ -357,23 +399,23 @@ func extractStrictJSON(s string) string {
 // 	return []string{"Summary unavailable"}, nil
 // }
 
-// func extractJSON(s string) string {
-// 	s = strings.TrimSpace(strings.ReplaceAll(s, "\r", ""))
-// 	if strings.HasPrefix(s, "```") {
-// 		// Split into lines and remove starting and ending fence lines only
-// 		lines := strings.Split(s, "\n")
-// 		// drop first line (``` or ```json)
-// 		if len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[0]), "```") { // Fixed index here
-// 			lines = lines[1:]
-// 		}
-// 		// drop trailing fence lines (```) if present
-// 		for len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[len(lines)-1]), "```") {
-// 			lines = lines[:len(lines)-1]
-// 		}
-// 		s = strings.Join(lines, "\n")
-// 	}
-// 	return strings.TrimSpace(s)
-// }
+func extractJSON(s string) string {
+	s = strings.TrimSpace(strings.ReplaceAll(s, "\r", ""))
+	if strings.HasPrefix(s, "```") {
+		// Split into lines and remove starting and ending fence lines only
+		lines := strings.Split(s, "\n")
+		// drop first line (``` or ```json)
+		if len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[0]), "```") { // Fixed index here
+			lines = lines[1:]
+		}
+		// drop trailing fence lines (```) if present
+		for len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[len(lines)-1]), "```") {
+			lines = lines[:len(lines)-1]
+		}
+		s = strings.Join(lines, "\n")
+	}
+	return strings.TrimSpace(s)
+}
 
 // func fmtInt(i int) string { return fmt.Sprintf("%d", i) }
 
@@ -475,7 +517,6 @@ OUTPUT:`, userPrompt, lang, lang, getProductJSONString(p), strings.ToUpper(lang)
 	enhancedProduct.Price = p.Price
 	enhancedProduct.ProductRating = p.ProductRating
 	enhancedProduct.SellerScore = p.SellerScore
-	enhancedProduct.SellerName = p.SellerName
 	enhancedProduct.DeliveryEstimate = p.DeliveryEstimate
 	enhancedProduct.NumberSold = p.NumberSold
 	enhancedProduct.DeeplinkURL = p.DeeplinkURL
@@ -495,7 +536,6 @@ func getProductJSONString(p *domain.Product) string {
 		"price":              p.Price,
 		"productRating":      p.ProductRating,
 		"sellerScore":        p.SellerScore,
-		"sellerName":         p.SellerName,
 		"deliveryEstimate":   p.DeliveryEstimate,
 		"description":        p.Description,
 		"customerHighlights": p.CustomerHighlights,
@@ -521,7 +561,6 @@ func (g *GeminiLLMGateway) createBasicEnhancedProduct(p *domain.Product, userPro
 		Price:              p.Price,
 		ProductRating:      p.ProductRating,
 		SellerScore:        p.SellerScore,
-		SellerName:         p.SellerName,
 		DeliveryEstimate:   p.DeliveryEstimate,
 		Description:        enhanceDescription(p.Description, lang),
 		CustomerHighlights: enhanceHighlights(p.CustomerHighlights, lang),

@@ -10,16 +10,13 @@ import (
 	"github.com/shopally-ai/pkg/domain"
 )
 
-func SetupRouter(cfg *config.Config, limiter *middleware.RateLimiter, searchHandler *handler.SearchHandler, alertHandler *handler.AlertHandler) *gin.Engine {
+func SetupRouter(cfg *config.Config, limiter *middleware.RateLimiter, searchHandler *handler.SearchHandler, compareHandler *handler.CompareHandler, alertHandler *handler.AlertHandler) *gin.Engine {
 	router := gin.Default()
 
 	version1 := router.Group("/api/v1")
 
 	// Health checker
 	version1.GET("/health", handler.Health)
-
-	//public
-	// version1.GET("/search", searchHandler.Search)
 
 	// private
 	limitedRouter := version1.Group("")
