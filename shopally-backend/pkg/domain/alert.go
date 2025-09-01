@@ -1,10 +1,9 @@
 package domain
 
 type Alert struct {
-	ID          string  `json:"alertId"`
-	UserID      string  `json:"userId"`
-	ProductID   string  `json:"productId"`
-	TargetPrice float64 `json:"targetPrice"`
-	DeviceID    string  `json:"deviceId"`
-	IsActive    bool    `json:"isActive"`
+	ID           string  `json:"alertId"`
+	DeviceID     string  `json:"deviceId"`
+	ProductID    string  `json:"productId"`
+	CurrentPrice float64 `json:"currentPrice"`
+	IsActive     bool    `json:"isActive"`
 }

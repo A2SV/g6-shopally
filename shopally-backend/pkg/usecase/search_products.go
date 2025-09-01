@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/shopally-ai/pkg/domain"
@@ -33,15 +32,11 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 	intent, err := uc.llmGateway.ParseIntent(ctx, query)
 	if err != nil {
 		// For V1 mock, fail soft by using empty filters
+		log.Println("SearchProductsUseCase: LLM intent parsing failed for query:", query, "error:", err)
 		intent = map[string]interface{}{}
 	}
 
-	// Infer category if missing using lightweight keyword mapping
-	if _, ok := intent["category"]; !ok || intent["category"] == "" {
-		if cat := inferCategory(query); cat != "" {
-			intent["category"] = cat
-		}
-	}
+	log.Println("SearchProductsUseCase: parsed intent for query:", query, "as", intent)
 
 	// Prune empty filters (nil/empty string) before passing to gateway
 	filters := make(map[string]interface{})
@@ -56,9 +51,18 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 		}
 		filters[k] = v
 	}
+	log.Println("SearchProductsUseCase: using filters for query:", query, "as", filters)
+
+	var keywords string
+
+	if keywordsStr, ok := filters["keywords"].(string); ok && keywordsStr != "" {
+		keywords = keywordsStr
+	} else {
+		keywords = query
+	}
 
 	// Fetch products from the gateway
-	products, err := uc.alibabaGateway.FetchProducts(ctx, query, filters)
+	products, err := uc.alibabaGateway.FetchProducts(ctx, keywords, filters)
 
 	log.Println("SearchProductsUseCase: fetched", len(products), "products for query:", query, "with filters:", filters)
 	if err != nil {
@@ -78,47 +82,37 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 		}
 	}
 
-	// Override currency, language and ship_to_country from context (if set)
+	log.Println("SearchProductsUseCase: ranked products for query:", query)
 
+	// Parallel summarization: each product summary is independent.
 	// Parallel summarization: each product summary is independent.
 	if uc.llmGateway != nil {
 		var wg sync.WaitGroup
 		wg.Add(len(products))
-		for _, p := range products {
-			prod := p
-			go func() {
+
+		for i := range products {
+			go func(index int) {
 				defer wg.Done()
-				if prod == nil {
+				if products[index] == nil {
 					return
 				}
-				bullets, err := uc.llmGateway.SummarizeProduct(ctx, prod)
-				if err == nil && len(bullets) > 0 {
-					prod.SummaryBullets = bullets
+
+				// Get the original product and user prompt from context if available
+				userPrompt := query
+
+				// Get enhanced product with all details
+				enhancedProduct, err := uc.llmGateway.SummarizeProduct(ctx, products[index], userPrompt)
+				if err == nil && enhancedProduct != nil {
+					// Replace the entire product with enhanced version
+					products[index] = enhancedProduct
 				}
-			}()
+			}(i)
 		}
 		wg.Wait()
 	}
 
 	// Return the envelope-compatible data payload
 	return map[string]interface{}{"products": products}, nil
-}
-
-// inferCategory does a minimal keyword-based category guess.
-func inferCategory(q string) string {
-	l := strings.ToLower(q)
-	switch {
-	case strings.Contains(l, "phone") || strings.Contains(l, "smartphone") || strings.Contains(l, "iphone") || strings.Contains(l, "galaxy"):
-		return "smartphone"
-	case strings.Contains(l, "laptop") || strings.Contains(l, "notebook") || strings.Contains(l, "macbook"):
-		return "laptop"
-	case strings.Contains(l, "earbud") || strings.Contains(l, "headphone") || strings.Contains(l, "airpods"):
-		return "headphone"
-	case strings.Contains(l, "watch") || strings.Contains(l, "smartwatch"):
-		return "watch"
-	default:
-		return ""
-	}
 }
 
 func defaultScore(p *domain.Product) float64 {

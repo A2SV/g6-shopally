@@ -26,7 +26,10 @@ func (m *MockLLMGateway) ParseIntent(ctx context.Context, query string) (map[str
 	}, nil
 }
 
-// SummarizeProduct returns hardcoded bullets for mocks
-func (m *MockLLMGateway) SummarizeProduct(ctx context.Context, p *domain.Product) ([]string, error) {
-	return []string{"This is a mock summary bullet."}, nil
+// SummarizeProduct returns a mocked summarized product for testing
+func (m *MockLLMGateway) SummarizeProduct(ctx context.Context, p *domain.Product, summaryType string) (*domain.Product, error) {
+	// Return a copy of the product with a mocked summary field if needed
+	mockedProduct := *p
+	// You can add a mocked summary to a field if domain.Product has one, or just return the product as is
+	return &mockedProduct, nil
 }

@@ -1,44 +1,69 @@
 package repository
 
 import (
-	"fmt"
-	"sync"
-
-	"github.com/shopally-ai/pkg/domain"
+	"context"
+	"errors"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/shopally-ai/pkg/domain"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type MockAlertRepository struct {
-	alerts sync.Map // map[string]*domain.Alert
+// MongoAlertRepository implements domain.AlertRepository using MongoDB.
+type MongoAlertRepository struct {
+	coll *mongo.Collection
 }
 
-func NewMockAlertRepository() *MockAlertRepository {
-	return &MockAlertRepository{}
+// NewMongoAlertRepository creates a new MongoAlertRepository with the provided collection.
+func NewMongoAlertRepository(coll *mongo.Collection) *MongoAlertRepository {
+	return &MongoAlertRepository{coll: coll}
 }
-func (r *MockAlertRepository) CreateAlert(alert *domain.Alert) error {
-	alert.ID = uuid.New().String()
-	r.alerts.Store(alert.ID, alert)
-	return nil
+
+func (r *MongoAlertRepository) CreateAlert(alert *domain.Alert) error {
+	if alert.ID == "" {
+		alert.ID = uuid.New().String()
+	}
+	// Ensure default active on create if not set
+	if !alert.IsActive {
+		alert.IsActive = true
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := r.coll.InsertOne(ctx, bson.M{
+		"ID":           alert.ID,
+		"DeviceID":     alert.DeviceID,
+		"ProductID":    alert.ProductID,
+		"CurrentPrice": alert.CurrentPrice,
+		"IsActive":     alert.IsActive,
+	})
+	return err
 }
-func (r *MockAlertRepository) GetAlert(alertID string) (*domain.Alert, error) {
-	if value, ok := r.alerts.Load(alertID); ok {
-		if alert, ok := value.(*domain.Alert); ok {
-			return alert, nil
+
+func (r *MongoAlertRepository) GetAlert(alertID string) (*domain.Alert, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var doc domain.Alert
+	err := r.coll.FindOne(ctx, bson.M{"ID": alertID}).Decode(&doc)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, err
 		}
+		return nil, err
 	}
-	return nil, fmt.Errorf("alert with ID %s not found", alertID)
+	return &doc, nil
 }
-func (r *MockAlertRepository) DeleteAlert(alertID string) error {
-	value, ok := r.alerts.Load(alertID)
-	if !ok {
-		return fmt.Errorf("alert with ID %s not found", alertID)
+
+func (r *MongoAlertRepository) DeleteAlert(alertID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	res, err := r.coll.UpdateOne(ctx, bson.M{"ID": alertID}, bson.M{"$set": bson.M{"IsActive": false}})
+	if err != nil {
+		return err
 	}
-	alert, ok := value.(*domain.Alert)
-	if !ok {
-		return fmt.Errorf("alert with ID %s not found", alertID)
+	if res.MatchedCount == 0 {
+		return mongo.ErrNoDocuments
 	}
-	alert.IsActive = false
-	r.alerts.Store(alertID, alert)
 	return nil
 }

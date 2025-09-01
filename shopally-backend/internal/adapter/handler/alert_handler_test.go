@@ -21,7 +21,7 @@ func TestAlertHandlers(t *testing.T) {
 	var alertID string
 
 	t.Run("CreateAlertHandler", func(t *testing.T) {
-		payload := []byte(`{"userId": "user-123", "productId": "prod-abc", "targetPrice": 500.00}`)
+		payload := []byte(`{"deviceId": "device-123", "productId": "prod-abc", "currentPrice": 500.00}`)
 		req := httptest.NewRequest("POST", "/alerts", bytes.NewBuffer(payload))
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()

@@ -18,10 +18,10 @@ type AlertRepositorySuite struct {
 func (s *AlertRepositorySuite) SetupTest() {
 	s.mockRepo = new(mocks.AlertRepository)
 	s.sampleAlert = &domain.Alert{
-		UserID:      "user-123",
-		ProductID:   "product-abc",
-		TargetPrice: 500.00,
-		IsActive:    true,
+		DeviceID:     "device-123",
+		ProductID:    "product-abc",
+		CurrentPrice: 500.00,
+		IsActive:     true,
 	}
 }
 
@@ -70,10 +70,10 @@ func TestMockAlertRepository(t *testing.T) {
 	repo := NewMockAlertRepository()
 
 	sampleAlert := &domain.Alert{
-		UserID:      "user-123",
-		ProductID:   "product-abc",
-		TargetPrice: 500.00,
-		IsActive:    true,
+		DeviceID:     "device-123",
+		ProductID:    "product-abc",
+		CurrentPrice: 500.00,
+		IsActive:     true,
 	}
 
 	var createdAlertID string
@@ -100,8 +100,8 @@ func TestMockAlertRepository(t *testing.T) {
 			t.Errorf("Retrieved alert ID mismatch: got %s, want %s", retrievedAlert.ID, createdAlertID)
 		}
 
-		if retrievedAlert.UserID != sampleAlert.UserID {
-			t.Errorf("Retrieved alert UserID mismatch: got %s, want %s", retrievedAlert.UserID, sampleAlert.UserID)
+		if retrievedAlert.DeviceID != sampleAlert.DeviceID {
+			t.Errorf("Retrieved alert DeviceID mismatch: got %s, want %s", retrievedAlert.DeviceID, sampleAlert.DeviceID)
 		}
 	})
 

@@ -2,9 +2,10 @@ package usecase
 
 import (
 	"fmt"
-	"github.com/shopally-ai/pkg/domain"
 	"sync"
 	"testing"
+
+	"github.com/shopally-ai/pkg/domain"
 )
 
 type mockAlertRepository struct {
@@ -43,9 +44,9 @@ func TestAlertManager_UseCases(t *testing.T) {
 	alertManager := NewAlertManager(mockRepo)
 
 	sampleAlert := &domain.Alert{
-		UserID:      "user-123",
-		ProductID:   "prod-abc",
-		TargetPrice: 500.00,
+		DeviceID:     "device-123",
+		ProductID:    "prod-abc",
+		CurrentPrice: 500.00,
 	}
 
 	var createdAlertID string

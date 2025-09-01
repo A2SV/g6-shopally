@@ -55,6 +55,10 @@ type Config struct {
 		AppSecret   string `mapstructure:"app_secret"`
 		BaseURL     string `mapstructure:"base_url"`
 	} `mapstructure:"aliexpress"`
+
+	Gemini struct {
+		APIKey string `mapstructure:"api_key"`
+	} `mapstructure:"gemini"`
 }
 
 func LoadConfig(path string) (*Config, error) {

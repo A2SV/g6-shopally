@@ -218,9 +218,11 @@ const mockAliExpressResponse = `{
 }`
 
 // FetchProducts implements usecase.AlibabaGateway.
-func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, query string, filters map[string]interface{}) ([]*domain.Product, error) {
+func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, Keywords string, filters map[string]interface{}) ([]*domain.Product, error) {
 	ts := time.Now().UTC().UnixNano() / 1e6
 	tsStr := strconv.FormatInt(ts, 10)
+
+	log.Printf("[AlibabaGateway] FetchProducts called with query: '%s' and filters: %+v", Keywords, filters)
 
 	// Initialize params with required fields and **default values**
 	params := map[string]string{
@@ -228,9 +230,9 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, query string, fi
 		"app_key":         a.cfg.Aliexpress.AppKey,
 		"timestamp":       tsStr,
 		"sign_method":     "sha256",
-		"keywords":        query,
+		"keywords":        Keywords,
 		"page_no":         "1",         // Default page number
-		"page_size":       "20",        // Default page size
+		"page_size":       "10",        // Default page size
 		"target_currency": "USD",       // Default currency
 		"target_language": "en",        // Default language
 		"sort":            "relevancy", // Default sort order
@@ -301,6 +303,9 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, query string, fi
 	setStringParam("ship_to_country")
 	setNumberParam("delivery_days")
 
+	// Log final params for debugging
+	log.Printf("[AlibabaGateway] Final API params: %+v", params)
+
 	// The 'fields' parameter is critical for our mapper. It's best to control
 	// it internally to ensure all expected fields for `aliProduct` are always requested.
 	// If the user *must* override it, a more complex merge/validation logic would be needed.
@@ -325,6 +330,8 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, query string, fi
 		qv.Set(k, v)
 	}
 	u.RawQuery = qv.Encode()
+
+	log.Printf("[AlibabaGateway] Final request URL: %s", u.String())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {

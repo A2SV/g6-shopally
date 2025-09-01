@@ -30,10 +30,9 @@ type successResponse struct {
 
 // createAlertPayload represents the expected payload for creating an alert.
 type createAlertPayload struct {
-	UserID      string  `json:"userId"`
-	ProductID   string  `json:"productId"`
-	TargetPrice float64 `json:"targetPrice"`
-	DeviceID    string  `json:"deviceId"`
+	ProductID    string  `json:"productId"`
+	DeviceID     string  `json:"deviceId"`
+	CurrentPrice float64 `json:"currentPrice"`
 }
 
 // CreateAlertHandler handles POST requests to create a new alert.
@@ -45,11 +44,10 @@ func (h *AlertHandler) CreateAlertHandler(c *gin.Context) {
 	}
 
 	newAlert := &domain.Alert{
-		UserID:      payload.UserID,
-		ProductID:   payload.ProductID,
-		TargetPrice: payload.TargetPrice,
-		DeviceID:    payload.DeviceID,
-		IsActive:    true,
+		ProductID:    payload.ProductID,
+		DeviceID:     payload.DeviceID,
+		CurrentPrice: payload.CurrentPrice,
+		IsActive:     true,
 	}
 
 	if err := h.alertManager.CreateAlert(newAlert); err != nil {

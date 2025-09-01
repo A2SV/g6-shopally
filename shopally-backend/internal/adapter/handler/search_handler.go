@@ -37,8 +37,9 @@ func (h *SearchHandler) Search(c *gin.Context) {
 		return
 	}
 
-	// Optional language preference: am | en (default en) change
-	lang := strings.ToLower(strings.TrimSpace(c.DefaultQuery("lang", "en")))
+	// get from header
+	lang := strings.ToLower(strings.TrimSpace(c.GetHeader("Accept-Language")))
+
 	ctx := c.Request.Context()
 	if lang == "am" {
 		ctx = context.WithValue(ctx, contextkeys.RespLang, "am")
