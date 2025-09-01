@@ -4,7 +4,7 @@ import { Trash2 } from "lucide-react";
 import { useDarkMode } from "@/app/components/saved-items/DarkModeContext";
 import ToggleSwitch from "@/app/components/saved-items/ToggleSwitch";
 import Rating from "./Rating";
-import { SavedItem } from "../../../types/types"
+import { SavedItem } from "../../../types/types";
 
 export default function SavedItemCard({
   title,
