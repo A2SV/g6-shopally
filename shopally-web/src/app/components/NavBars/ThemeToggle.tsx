@@ -29,7 +29,7 @@ export default function ThemeToggle() {
     "ThemeToggle: Current theme is",
     resolvedTheme,
     "isDark:",
-    isDark
+    isDark,
   );
 
   return (

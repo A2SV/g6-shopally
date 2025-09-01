@@ -6,7 +6,7 @@ export async function fetchProducts(): Promise<Product[]> {
     `${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}/data/products.json`,
     {
       cache: "no-store",
-    }
+    },
   );
 
   if (!res.ok) {

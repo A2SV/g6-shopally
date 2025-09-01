@@ -73,8 +73,8 @@ export default function SavedItemCard({
             {price.etb
               ? `${price.etb} ETB`
               : price.usd
-              ? `$${price.usd}`
-              : "N/A"}
+                ? `$${price.usd}`
+                : "N/A"}
           </p>
           {oldPrice && (
             <span className="line-through text-gray-400 text-sm">

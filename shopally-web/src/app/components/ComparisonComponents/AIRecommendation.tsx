@@ -22,7 +22,7 @@ export const AIRecommendation: React.FC<{ comparison: ComparisonItem[] }> = ({
   const recommendedProduct = [...comparison].sort(
     (a, b) =>
       b.product.productRating - a.product.productRating ||
-      b.product.sellerScore - a.product.sellerScore
+      b.product.sellerScore - a.product.sellerScore,
   )[0].product;
 
   // Build analysis cards (static scores & pros/cons for demo)

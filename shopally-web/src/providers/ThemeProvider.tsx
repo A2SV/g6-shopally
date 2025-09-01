@@ -26,7 +26,7 @@ function ThemeManager({ children }: { children: React.ReactNode }) {
     console.log("ThemeManager: Final HTML class =", html.className);
     console.log(
       "ThemeManager: HTML element classes:",
-      html.classList.toString()
+      html.classList.toString(),
     );
   }, [resolvedTheme]);
 

@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sun, Moon, MessageCircleMore, ArrowRight, SlidersHorizontal, X } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  MessageCircleMore,
+  ArrowRight,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 
 export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
@@ -120,8 +127,12 @@ export default function Home() {
                 onClick={() => setIsFilterOpen(false)}
                 className="flex items-center gap-1 px-3 py-1 rounded-full border text-sm hover:bg-gray-100 transition"
               >
-                <X className={`w-4 h-4 ${darkMode ? "text-white" : "text-black"}`} />
-                <span className={`${darkMode ? "text-white" : "text-black"}`}>Close</span>
+                <X
+                  className={`w-4 h-4 ${darkMode ? "text-white" : "text-black"}`}
+                />
+                <span className={`${darkMode ? "text-white" : "text-black"}`}>
+                  Close
+                </span>
               </button>
             </div>
             <div className="p-4 space-y-6">
@@ -134,50 +145,66 @@ export default function Home() {
                   type="text"
                   placeholder="Add multiple brands separated by commas"
                   className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 
-                  ${darkMode 
-                    ? "bg-[#1E1E1E] border-gray-600 text-white placeholder-gray-400 focus:ring-yellow-500" 
-                    : "border-gray-300 text-black placeholder-gray-500 focus:ring-blue-500"}`}
+                  ${
+                    darkMode
+                      ? "bg-[#1E1E1E] border-gray-600 text-white placeholder-gray-400 focus:ring-yellow-500"
+                      : "border-gray-300 text-black placeholder-gray-500 focus:ring-blue-500"
+                  }`}
                 />
-                <p className={`text-xs mt-1 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                <p
+                  className={`text-xs mt-1 ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                >
                   e.g., Nike, Adidas, Asics
                 </p>
               </div>
               {/* Price range */}
               <div>
-                <label className="block text-sm font-medium mb-1">Price range</label>
+                <label className="block text-sm font-medium mb-1">
+                  Price range
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="number"
                     placeholder="Min $50"
                     className={`w-1/2 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 
-                    ${darkMode 
-                      ? "bg-[#1E1E1E] border-gray-600 text-white placeholder-gray-400 focus:ring-yellow-500" 
-                      : "border-gray-300 text-black placeholder-gray-500 focus:ring-blue-500"}`}
+                    ${
+                      darkMode
+                        ? "bg-[#1E1E1E] border-gray-600 text-white placeholder-gray-400 focus:ring-yellow-500"
+                        : "border-gray-300 text-black placeholder-gray-500 focus:ring-blue-500"
+                    }`}
                   />
                   <input
                     type="number"
                     placeholder="Max $200"
                     className={`w-1/2 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 
-                    ${darkMode 
-                      ? "bg-[#1E1E1E] border-gray-600 text-white placeholder-gray-400 focus:ring-yellow-500" 
-                      : "border-gray-300 text-black placeholder-gray-500 focus:ring-blue-500"}`}
+                    ${
+                      darkMode
+                        ? "bg-[#1E1E1E] border-gray-600 text-white placeholder-gray-400 focus:ring-yellow-500"
+                        : "border-gray-300 text-black placeholder-gray-500 focus:ring-blue-500"
+                    }`}
                   />
                 </div>
-                <p className={`text-xs mt-1 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                <p
+                  className={`text-xs mt-1 ${darkMode ? "text-gray-400" : "text-gray-500"}`}
+                >
                   Enter minimum and maximum price in USD.
                 </p>
               </div>
               {/* Minimum rating */}
               <div>
-                <label className="block text-sm font-medium mb-1">Minimum rating</label>
+                <label className="block text-sm font-medium mb-1">
+                  Minimum rating
+                </label>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map((rating) => (
                     <button
                       key={rating}
                       className={`w-8 h-8 flex items-center justify-center rounded-full border hover:bg-blue-50 focus:ring-2 
-                      ${darkMode 
-                        ? "border-gray-600 text-white hover:bg-[#333]" 
-                        : "border-gray-300 text-black hover:bg-blue-50 focus:ring-blue-500"}`}
+                      ${
+                        darkMode
+                          ? "border-gray-600 text-white hover:bg-[#333]"
+                          : "border-gray-300 text-black hover:bg-blue-50 focus:ring-blue-500"
+                      }`}
                     >
                       {rating}
                     </button>

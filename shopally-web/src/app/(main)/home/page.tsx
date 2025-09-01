@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sun, Moon,MessageCircleMore, ArrowRight } from "lucide-react";
+import { Sun, Moon, MessageCircleMore, ArrowRight } from "lucide-react";
 import Image from "next/image";
 
 export default function Home() {
@@ -23,7 +23,6 @@ export default function Home() {
     setinput(""); // clear input
   };
 
-  
   useEffect(() => {
     const mes = localStorage.getItem("message");
     setMessage(mes ? JSON.parse(mes) : []);
@@ -32,8 +31,6 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem("message", JSON.stringify(message));
   }, [message]);
-
-
 
   return (
     <main
@@ -187,8 +184,6 @@ export default function Home() {
           ))}
         </div>
       )}
-
-       
 
       {/* {search bar if there is message} */}
       <section

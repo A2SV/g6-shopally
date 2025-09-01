@@ -9,7 +9,7 @@ export async function fetchComparison(): Promise<ComparisonItem[]> {
     `${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}/data/comparison.json`,
     {
       cache: "no-store",
-    }
+    },
   );
 
   if (!res.ok) {

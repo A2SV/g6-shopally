@@ -9,7 +9,7 @@ const loadLocalDb = (): { savedItems: SavedItemUI[] } => {
   if (typeof window === "undefined") return { savedItems: [] };
   try {
     return JSON.parse(
-      localStorage.getItem(LOCAL_DB_KEY) || '{"savedItems":[] }'
+      localStorage.getItem(LOCAL_DB_KEY) || '{"savedItems":[] }',
     );
   } catch {
     return { savedItems: [] };
@@ -42,7 +42,7 @@ export const useSavedItems = () => {
 
       localStorage.setItem(
         LOCAL_DB_KEY,
-        JSON.stringify({ savedItems: newList })
+        JSON.stringify({ savedItems: newList }),
       );
       return newList;
     });
@@ -53,7 +53,7 @@ export const useSavedItems = () => {
       const newList = prev.filter((item) => item.id !== itemId);
       localStorage.setItem(
         LOCAL_DB_KEY,
-        JSON.stringify({ savedItems: newList })
+        JSON.stringify({ savedItems: newList }),
       );
       return newList;
     });
@@ -62,20 +62,20 @@ export const useSavedItems = () => {
   const updateItemPrice = useCallback(
     (
       itemId: string,
-      newPrice: { etb: number; usd: number; fxTimestamp: string }
+      newPrice: { etb: number; usd: number; fxTimestamp: string },
     ) => {
       setSavedItems((prev) => {
         const newList = prev.map((item) =>
-          item.id === itemId ? { ...item, price: { ...newPrice } } : item
+          item.id === itemId ? { ...item, price: { ...newPrice } } : item,
         );
         localStorage.setItem(
           LOCAL_DB_KEY,
-          JSON.stringify({ savedItems: newList })
+          JSON.stringify({ savedItems: newList }),
         );
         return newList;
       });
     },
-    []
+    [],
   );
 
   const alertChange = useCallback((itemId: string) => {
@@ -83,11 +83,11 @@ export const useSavedItems = () => {
       const newList = prev.map((item) =>
         item.id === itemId
           ? { ...item, priceAlertOn: !item.priceAlertOn }
-          : item
+          : item,
       );
       localStorage.setItem(
         LOCAL_DB_KEY,
-        JSON.stringify({ savedItems: newList })
+        JSON.stringify({ savedItems: newList }),
       );
       return newList;
     });
