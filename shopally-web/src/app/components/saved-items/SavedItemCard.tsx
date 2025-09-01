@@ -1,13 +1,22 @@
+// shopally-web/src/app/components/saved-items/SavedItemCard.tsx
 "use client";
 
-import { Trash2 } from "lucide-react";
 import { useDarkMode } from "@/app/components/saved-items/DarkModeContext";
 import ToggleSwitch from "@/app/components/saved-items/ToggleSwitch";
+import { Trash2 } from "lucide-react";
+import { SavedItemUI } from "../../../types/types";
 import Rating from "./Rating";
-import { SavedItem } from "../../../types/types";
+
+// Extend SavedItemUI with optional callbacks
+interface SavedItemCardProps extends SavedItemUI {
+  onRemove?: (id: string) => void;
+  onUpdatePrice?: (id: string, price: SavedItemUI["price"]) => void;
+  onToggleAlert?: (id: string) => void;
+}
 
 export default function SavedItemCard({
   title,
+  imageUrl,
   rating,
   ratingCount,
   price,
@@ -16,7 +25,11 @@ export default function SavedItemCard({
   checked,
   priceAlertOn,
   placeholderText,
-}: SavedItem) {
+  id,
+  onRemove,
+  onUpdatePrice,
+  onToggleAlert,
+}: SavedItemCardProps) {
   const { isDarkMode } = useDarkMode();
 
   return (
@@ -29,7 +42,11 @@ export default function SavedItemCard({
     >
       {/* Image container */}
       <div className="relative w-full h-44 bg-gray-200 flex items-center justify-center text-3xl font-bold text-gray-400">
-        {placeholderText}
+        <img
+          src={imageUrl}
+          alt={title}
+          className="w-full h-full object-cover"
+        />
 
         {/* Price Alert badge */}
         <div className="absolute top-2 left-2 bg-[#FFD300] text-white text-xs font-medium px-2 py-1 rounded-full shadow">
@@ -37,7 +54,10 @@ export default function SavedItemCard({
         </div>
 
         {/* Delete button */}
-        <button className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-2 shadow">
+        <button
+          className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-2 shadow"
+          onClick={() => onRemove?.(id)}
+        >
           <Trash2 className="w-5 h-5 text-black" />
         </button>
       </div>
@@ -51,9 +71,21 @@ export default function SavedItemCard({
 
         {/* Price */}
         <div className="flex items-center gap-2 mt-2">
-          <p className="text-xl font-bold">{price}</p>
+          <p className="text-xl font-bold">
+            {price.etb
+              ? `${price.etb} ETB`
+              : price.usd
+              ? `$${price.usd}`
+              : "N/A"}
+          </p>
           {oldPrice && (
-            <span className="line-through text-gray-400 text-sm">{oldPrice}</span>
+            <span className="line-through text-gray-400 text-sm">
+              {typeof oldPrice === "object"
+                ? oldPrice.etb
+                  ? `${oldPrice.etb} ETB`
+                  : `$${oldPrice.usd}`
+                : oldPrice}
+            </span>
           )}
         </div>
 
@@ -61,8 +93,13 @@ export default function SavedItemCard({
 
         {/* Toggle */}
         <div className="flex items-center mt-3">
-          <span className="text-sm font-medium mr-2 text-gray-500">Price Alert</span>
-          <ToggleSwitch defaultChecked={priceAlertOn} />
+          <span className="text-sm font-medium mr-2 text-gray-500">
+            Price Alert
+          </span>
+          <ToggleSwitch
+            checked={priceAlertOn} // controlled
+            onChange={() => onToggleAlert?.(id)}
+          />
         </div>
 
         {/* Actions */}

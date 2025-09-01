@@ -1,13 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 
-export default function ToggleSwitch({ defaultChecked = false }: { defaultChecked?: boolean }) {
-  const [enabled, setEnabled] = useState(defaultChecked);
+interface ToggleSwitchProps {
+  checked: boolean; // controlled
+  onChange: () => void;
+}
+
+export default function ToggleSwitch({ checked, onChange }: ToggleSwitchProps) {
+  const [enabled, setEnabled] = useState(checked);
+
+  // Keep local state in sync with controlled prop
+  useEffect(() => {
+    setEnabled(checked);
+  }, [checked]);
 
   return (
     <button
-      onClick={() => setEnabled(!enabled)}
+      onClick={() => {
+        setEnabled(!enabled); // immediate animation
+        onChange(); // update parent state
+      }}
       className={`w-10 h-5 flex items-center rounded-full p-1 transition-colors duration-300 ${
         enabled ? "bg-[#FFD300]" : "bg-gray-300"
       }`}

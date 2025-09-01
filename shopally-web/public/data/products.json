@@ -1,0 +1,87 @@
+{
+  "data": {
+    "products": [
+      {
+        "id": "1",
+        "title": "Wireless Bluetooth Headphones",
+        "imageUrl": "https://images5.alphacoders.com/100/1002716.jpg",
+        "aiMatchPercentage": 90,
+        "price": {
+          "etb": 1650,
+          "usd": 29.99,
+          "fxTimestamp": "2025-08-28T00:00:00Z"
+        },
+        "productRating": 4.5,
+        "sellerScore": 92,
+        "deliveryEstimate": "3-7 days",
+        "summaryBullets": [
+          "30 hours battery life",
+          "Lightweight 250g design",
+          "1 year warranty"
+        ],
+        "deeplinkUrl": "https://example.com/products/1"
+      },
+      {
+        "id": "2",
+        "title": "Smart Fitness Tracker",
+        "imageUrl": "https://images5.alphacoders.com/100/1002716.jpg",
+        "aiMatchPercentage": 85,
+        "price": {
+          "etb": 2530,
+          "usd": 45.99,
+          "fxTimestamp": "2025-08-28T00:00:00Z"
+        },
+        "productRating": 4.2,
+        "sellerScore": 87,
+        "deliveryEstimate": "5-10 days",
+        "summaryBullets": [
+          "7 days battery life",
+          "45g ultra-lightweight",
+          "2 year warranty"
+        ],
+        "deeplinkUrl": "https://example.com/products/2"
+      },
+      {
+        "id": "3",
+        "title": "Portable Phone Charger",
+        "imageUrl": "https://images5.alphacoders.com/100/1002716.jpg",
+        "aiMatchPercentage": 88,
+        "price": {
+          "etb": 1100,
+          "usd": 19.99,
+          "fxTimestamp": "2025-08-28T00:00:00Z"
+        },
+        "productRating": 4.7,
+        "sellerScore": 95,
+        "deliveryEstimate": "4-8 days",
+        "summaryBullets": [
+          "10000mAh high capacity",
+          "Compact 220g design",
+          "18 months warranty"
+        ],
+        "deeplinkUrl": "https://example.com/products/3"
+      },
+      {
+        "id": "4",
+        "title": "Advanced Smart Fitness Tracker",
+        "imageUrl": "https://images5.alphacoders.com/100/1002716.jpg",
+        "aiMatchPercentage": 83,
+        "price": {
+          "etb": 2650,
+          "usd": 49.99,
+          "fxTimestamp": "2025-08-28T00:00:00Z"
+        },
+        "productRating": 4.3,
+        "sellerScore": 88,
+        "deliveryEstimate": "5-10 days",
+        "summaryBullets": [
+          "10 days battery life",
+          "50g ultra-lightweight",
+          "2 year warranty"
+        ],
+        "deeplinkUrl": "https://example.com/products/4"
+      }
+    ]
+  },
+  "error": null
+}

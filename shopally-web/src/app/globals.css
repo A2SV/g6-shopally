@@ -12,11 +12,8 @@
   --color-brand-darkGray: #262b32;
   --color-brand-dark: #090c11;
 }
-@layer base {
-  body {
-    @apply font-inter bg-brand-white;
-  }
 
+@layer base {
   h1,
   h2,
   h3,

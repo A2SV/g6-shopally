@@ -1,3 +1,4 @@
+// shopally-web/src/types/types.ts
 // --- Currency & FX ---
 export type Currency = "ETB" | "USD";
 
@@ -5,8 +6,8 @@ export interface FXRate {
   from: Currency;
   to: Currency;
   rate: number;
-  source: string; 
-  updatedAt: string; 
+  source: string;
+  updatedAt: string;
 }
 
 // --- User ---
@@ -24,22 +25,25 @@ export interface User {
 export interface Product {
   id: string;
   title: string;
-  img: string;
-  priceUSD: number;
-  priceETB: number;
-  fxTime: string; 
-  rating?: number;
-  sellerScore?: number;
-  specs?: Record<string, string | number>;
-  shipping?: {
-    minDays?: number;
-    maxDays?: number;
-    shipFrom?: string;
+  imageUrl: string;
+  aiMatchPercentage: number;
+  price: {
+    etb: number;
+    usd: number;
+    fxTimestamp: string;
   };
-  category?: string;
+  productRating: number;
+  sellerScore: number;
+  deliveryEstimate: string;
+  summaryBullets: string[];
   deeplinkUrl: string;
-  lastChecked: string;
-  restricted?: boolean;
+}
+
+export interface ProductResponse {
+  data: {
+    products: Product[];
+  };
+  error: string | null;
 }
 
 // --- Review Summary ---
@@ -93,17 +97,32 @@ export interface Deeplink {
 // --- Saved Items & Searches ---
 
 export type SavedItem = {
+  id: string;
   title: string;
+  imageUrl: string;
+  aiMatchPercentage: number;
+  price: {
+    etb: number;
+    usd: number;
+    fxTimestamp: string;
+  };
+  productRating: number;
+  sellerScore: number;
+  deliveryEstimate: string;
+  summaryBullets: string[];
+  deeplinkUrl: string;
+};
+
+// UI-specific SavedItem with extra fields for SavedItemCard
+export type SavedItemUI = SavedItem & {
   rating: number;
   ratingCount: number;
-  price: string;
-  oldPrice: string;
+  oldPrice?: string;
   seller: string;
   checked: string;
   priceAlertOn: boolean;
   placeholderText: string;
 };
-
 
 export interface SavedSearch {
   query: string;
