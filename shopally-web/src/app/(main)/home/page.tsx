@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {Search} from "lucide-react";
 import { Sun, Moon,MessageCircleMore, ArrowRight } from "lucide-react";
 import CardComponent from "../../components/home-page-component/page"
+import FilterSidebar from "@/app/components/NavBars/FilterSidebar";
 
 export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
@@ -50,6 +51,7 @@ export default function Home() {
           darkMode ? "border-gray-600" : "border-gray-200"
         } dark:border-gray-700 `}
       >
+        <FilterSidebar />
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-yellow-400">
