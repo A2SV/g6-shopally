@@ -2,11 +2,10 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/shopally-ai/pkg/domain"
 	"github.com/shopally-ai/pkg/usecase"
 )
@@ -34,18 +33,14 @@ type createAlertPayload struct {
 	UserID      string  `json:"userId"`
 	ProductID   string  `json:"productId"`
 	TargetPrice float64 `json:"targetPrice"`
+	DeviceID    string  `json:"deviceId"`
 }
 
 // CreateAlertHandler handles POST requests to create a new alert.
-func (h *AlertHandler) CreateAlertHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func (h *AlertHandler) CreateAlertHandler(c *gin.Context) {
 	var payload createAlertPayload
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
@@ -53,11 +48,12 @@ func (h *AlertHandler) CreateAlertHandler(w http.ResponseWriter, r *http.Request
 		UserID:      payload.UserID,
 		ProductID:   payload.ProductID,
 		TargetPrice: payload.TargetPrice,
+		DeviceID:    payload.DeviceID,
 		IsActive:    true,
 	}
 
 	if err := h.alertManager.CreateAlert(newAlert); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to create alert: %v", err), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create alert: %v", err)})
 		return
 	}
 
@@ -68,31 +64,15 @@ func (h *AlertHandler) CreateAlertHandler(w http.ResponseWriter, r *http.Request
 		},
 		Error: nil,
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated) // 201 Created
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusCreated, response)
 }
 
 // GetAlertHandler handles GET requests to retrieve an alert by its ID.
-func (h *AlertHandler) GetAlertHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) != 3 {
-		http.Error(w, "Invalid URL format", http.StatusBadRequest)
-		return
-	}
-	alertID := parts[2]
-
+func (h *AlertHandler) GetAlertHandler(c *gin.Context) {
+	alertID := c.Param("id")
 	alert, err := h.alertManager.GetAlert(alertID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to retrieve alert: %v", err), http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Failed to retrieve alert: %v", err)})
 		return
 	}
 
@@ -100,30 +80,14 @@ func (h *AlertHandler) GetAlertHandler(w http.ResponseWriter, r *http.Request) {
 		Data:  alert,
 		Error: nil,
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK) // 200 OK
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusOK, response)
 }
 
 // DeleteAlertHandler handles DELETE requests to remove an alert by its ID.
-func (h *AlertHandler) DeleteAlertHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) != 3 {
-		http.Error(w, "Invalid URL format", http.StatusBadRequest)
-		return
-	}
-	alertID := parts[2]
-
+func (h *AlertHandler) DeleteAlertHandler(c *gin.Context) {
+	alertID := c.Param("id")
 	if err := h.alertManager.DeleteAlert(alertID); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to delete alert: %v", err), http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Failed to delete alert: %v", err)})
 		return
 	}
 
@@ -133,10 +97,5 @@ func (h *AlertHandler) DeleteAlertHandler(w http.ResponseWriter, r *http.Request
 		},
 		Error: nil,
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK) // 200 OK
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-	}
+	c.JSON(http.StatusOK, response)
 }

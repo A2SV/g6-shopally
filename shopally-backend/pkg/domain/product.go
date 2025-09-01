@@ -21,4 +21,25 @@ type Product struct {
 	DeliveryEstimate  string   `json:"deliveryEstimate"`
 	SummaryBullets    []string `json:"summaryBullets"`
 	DeeplinkURL       string   `json:"deeplinkUrl"`
+	TaxRate           float64  `json:"taxRate"`
+	Discount          float64  `json:"discount"`
+}
+
+// Synthesis captures comparison insights for a product.
+type Synthesis struct {
+	Pros        []string          `json:"pros"`
+	Cons        []string          `json:"cons"`
+	IsBestValue bool              `json:"isBestValue"`
+	Features    map[string]string `json:"features"`
+}
+
+// ProductComparison wraps a product and its synthesis insights.
+type ProductComparison struct {
+	Product   Product   `json:"product"`
+	Synthesis Synthesis `json:"synthesis"`
+}
+
+// ComparisonResult holds multiple product comparisons (for side-by-side results).
+type ComparisonResult struct {
+	Products []ProductComparison `json:"products"`
 }

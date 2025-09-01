@@ -6,14 +6,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/shopally-ai/pkg/usecase"
+	"github.com/shopally-ai/pkg/domain"
 )
 
 type FXHandler struct {
-	FX usecase.IFXClient
+	FX domain.IFXClient
 }
 
-func NewFXHandler(fx usecase.IFXClient) *FXHandler {
+func NewFXHandler(fx domain.IFXClient) *FXHandler {
 	return &FXHandler{FX: fx}
 }
 

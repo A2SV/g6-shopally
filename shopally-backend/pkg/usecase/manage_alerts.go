@@ -3,10 +3,10 @@ package usecase
 import "github.com/shopally-ai/pkg/domain"
 
 type AlertManager struct {
-	repo AlertRepository
+	repo domain.AlertRepository
 }
 
-func NewAlertManager(repo AlertRepository) *AlertManager {
+func NewAlertManager(repo domain.AlertRepository) *AlertManager {
 	return &AlertManager{
 		repo: repo,
 	}

@@ -43,6 +43,11 @@ type Config struct {
 			RedirectURI  string `mapstructure:"redirect_uri"`
 		} `mapstructure:"aliexpress"`
 	} `mapstructure:"oauth"`
+
+	RateLimit struct {
+		Limit  int `mapstructure:"limit"`
+		Window int `mapstructure:"window"`
+	} `mapstructure:"rate-limit"`
 }
 
 func LoadConfig(path string) (*Config, error) {

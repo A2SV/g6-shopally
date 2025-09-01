@@ -6,17 +6,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shopally-ai/pkg/usecase"
+	"github.com/shopally-ai/pkg/domain"
 )
 
 type CachedFXClient struct {
-	Inner  usecase.IFXClient
-	Cache  usecase.ICachePort
+	Inner  domain.IFXClient
+	Cache  domain.ICachePort
 	TTL    time.Duration
 	Prefix string // optional key prefix, e.g., "fx:"
 }
 
-func NewCachedFXClient(inner usecase.IFXClient, cache usecase.ICachePort, ttl time.Duration) *CachedFXClient {
+func NewCachedFXClient(inner domain.IFXClient, cache domain.ICachePort, ttl time.Duration) *CachedFXClient {
 	return &CachedFXClient{
 		Inner:  inner,
 		Cache:  cache,
@@ -69,4 +69,4 @@ func formatFloat(f float64) string {
 	return strconv.FormatFloat(f, 'f', 6, 64)
 }
 
-var _ usecase.IFXClient = (*CachedFXClient)(nil)
+var _ domain.IFXClient = (*CachedFXClient)(nil)

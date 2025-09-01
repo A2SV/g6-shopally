@@ -5,13 +5,12 @@ import (
 	"time"
 
 	"github.com/shopally-ai/pkg/domain"
-	"github.com/shopally-ai/pkg/usecase"
 )
 
 // MockAlibabaGateway implements usecase.AlibabaGateway and returns hardcoded products.
 type MockAlibabaGateway struct{}
 
-func NewMockAlibabaGateway() usecase.AlibabaGateway {
+func NewMockAlibabaGateway() domain.AlibabaGateway {
 	return &MockAlibabaGateway{}
 }
 

@@ -3,13 +3,13 @@ package gateway
 import (
 	"context"
 
-	"github.com/shopally-ai/pkg/usecase"
+	"github.com/shopally-ai/pkg/domain"
 )
 
 // MockLLMGateway implements usecase.LLMGateway and returns a hardcoded parsed intent.
 type MockLLMGateway struct{}
 
-func NewMockLLMGateway() usecase.LLMGateway {
+func NewMockLLMGateway() domain.LLMGateway {
 	return &MockLLMGateway{}
 }
 

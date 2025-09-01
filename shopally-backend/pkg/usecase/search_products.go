@@ -2,18 +2,20 @@ package usecase
 
 import (
 	"context"
+
+	"github.com/shopally-ai/pkg/domain"
 )
 
 // SearchProductsUseCase contains the business logic for searching products.
 // It orchestrates calls to external gateways (LLM, Alibaba, Cache).
 type SearchProductsUseCase struct {
-	alibabaGateway AlibabaGateway
-	llmGateway     LLMGateway
-	cacheGateway   CacheGateway
+	alibabaGateway domain.AlibabaGateway
+	llmGateway     domain.LLMGateway
+	cacheGateway   domain.CacheGateway
 }
 
 // NewSearchProductsUseCase creates a new SearchProductsUseCase.
-func NewSearchProductsUseCase(ag AlibabaGateway, lg LLMGateway, cg CacheGateway) *SearchProductsUseCase {
+func NewSearchProductsUseCase(ag domain.AlibabaGateway, lg domain.LLMGateway, cg domain.CacheGateway) *SearchProductsUseCase {
 	return &SearchProductsUseCase{
 		alibabaGateway: ag,
 		llmGateway:     lg,

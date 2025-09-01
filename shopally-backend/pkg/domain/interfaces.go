@@ -1,15 +1,13 @@
-package usecase
+package domain
 
 import (
 	"context"
 	"time"
-
-	"github.com/shopally-ai/pkg/domain"
 )
 
 // AlibabaGateway defines the contract for fetching products from an external source.
 type AlibabaGateway interface {
-	FetchProducts(ctx context.Context, query string, filters map[string]interface{}) ([]*domain.Product, error)
+	FetchProducts(ctx context.Context, query string, filters map[string]interface{}) ([]*Product, error)
 }
 
 // LLMGateway defines the contract for a Large Language Model service
@@ -36,7 +34,7 @@ type ICachePort interface {
 }
 
 type AlertRepository interface {
-	CreateAlert(alert *domain.Alert) error
-	GetAlert(alertID string) (*domain.Alert, error)
+	CreateAlert(alert *Alert) error
+	GetAlert(alertID string) (*Alert, error)
 	DeleteAlert(alertID string) error
 }

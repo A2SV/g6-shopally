@@ -118,9 +118,12 @@ func TestMockAlertRepository(t *testing.T) {
 			t.Fatalf("DeleteAlert failed with error: %v", err)
 		}
 
-		_, err = repo.GetAlert(createdAlertID)
-		if err == nil {
-			t.Fatal("Alert was not deleted as expected")
+		alert, err := repo.GetAlert(createdAlertID)
+		if err != nil {
+			t.Fatalf("GetAlert failed after delete: %v", err)
+		}
+		if alert.IsActive {
+			t.Errorf("expected IsActive to be false after deletion, got true")
 		}
 	})
 

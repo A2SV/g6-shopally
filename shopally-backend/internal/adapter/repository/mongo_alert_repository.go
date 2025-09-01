@@ -30,9 +30,15 @@ func (r *MockAlertRepository) GetAlert(alertID string) (*domain.Alert, error) {
 	return nil, fmt.Errorf("alert with ID %s not found", alertID)
 }
 func (r *MockAlertRepository) DeleteAlert(alertID string) error {
-	if _, ok := r.alerts.Load(alertID); !ok {
+	value, ok := r.alerts.Load(alertID)
+	if !ok {
 		return fmt.Errorf("alert with ID %s not found", alertID)
 	}
-	r.alerts.Delete(alertID)
+	alert, ok := value.(*domain.Alert)
+	if !ok {
+		return fmt.Errorf("alert with ID %s not found", alertID)
+	}
+	alert.IsActive = false
+	r.alerts.Store(alertID, alert)
 	return nil
 }

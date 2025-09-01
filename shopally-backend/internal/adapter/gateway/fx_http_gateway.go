@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shopally-ai/pkg/usecase"
+	"github.com/shopally-ai/pkg/domain"
 )
 
 // FXHTTPGateway is an outbound adapter that calls a configurable FX HTTP API.
@@ -23,7 +23,7 @@ type FXHTTPGateway struct {
 	HTTPClient *http.Client
 }
 
-var _ usecase.IFXClient = (*FXHTTPGateway)(nil)
+var _ domain.IFXClient = (*FXHTTPGateway)(nil)
 
 // NewFXHTTPGateway creates a new gateway. If httpClient is nil, a default client is used.
 func NewFXHTTPGateway(apiURL, apiKey string, httpClient *http.Client) *FXHTTPGateway {

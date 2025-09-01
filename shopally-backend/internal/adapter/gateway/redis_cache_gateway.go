@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/shopally-ai/pkg/usecase"
+	"github.com/shopally-ai/pkg/domain"
 )
 
 type RedisCache struct {
@@ -48,4 +48,4 @@ func (c *RedisCache) Set(ctx context.Context, key, val string, ttl time.Duration
 }
 
 // Ensure interface compliance at compile time
-var _ usecase.ICachePort = (*RedisCache)(nil)
+var _ domain.ICachePort = (*RedisCache)(nil)
