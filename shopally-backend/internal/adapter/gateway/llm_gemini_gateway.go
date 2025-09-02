@@ -105,7 +105,7 @@ FEATURE COMPARISON GUIDELINES:
 SPECIFIC AREAS TO COMPARE:
 1. PRICE: Which offers best value? Consider ETB price, USD price, discounts, tax
 2. QUALITY: Compare product ratings (%v/5 vs others) and customer reviews
-3. SELLER: Compare seller scores (%d/100) and trust indicators
+3. SELLER: Compare seller scores (/100) and trust indicators
 4. DELIVERY: Compare delivery estimates ("%s" vs others)
 5. POPULARITY: Compare number sold (%d units) and market acceptance
 6. FEATURES: Compare summary bullets and unique offerings
