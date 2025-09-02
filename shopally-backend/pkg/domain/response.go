@@ -51,7 +51,7 @@ type SgResp struct {
 }
 
 type GeminiRequest struct {
-	Contents        []struct {
+	Contents []struct {
 		Parts []struct {
 			Text string `json:"text"`
 		} `json:"parts"`
