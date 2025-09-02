@@ -27,6 +27,7 @@ type GeminiLLMGateway struct {
 
 // CompareProducts implements domain.LLMGateway.
 // CompareProducts implements domain.LLMGateway.
+// CompareProducts implements domain.LLMGateway.
 func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails []*domain.Product) (*domain.ComparisonResult, error) {
 	if len(productDetails) == 0 {
 		return nil, fmt.Errorf("at least one product is required")
@@ -48,6 +49,12 @@ func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails [
 		if s, ok := v.(string); ok && s != "" {
 			lang = s
 		}
+	}
+
+	// Extract delivery info from first product for the prompt
+	deliveryInfo := "varies"
+	if len(productDetails) > 0 && productDetails[0].DeliveryEstimate != "" {
+		deliveryInfo = productDetails[0].DeliveryEstimate
 	}
 
 	prompt := fmt.Sprintf(`You are an expert e-commerce product comparison assistant. Analyze and compare %d products thoroughly.
@@ -97,7 +104,7 @@ FEATURE COMPARISON GUIDELINES:
 
 SPECIFIC AREAS TO COMPARE:
 1. PRICE: Which offers best value? Consider ETB price, USD price, discounts, tax
-2. QUALITY: Compare product ratings (%.1f/5 vs others) and customer reviews
+2. QUALITY: Compare product ratings (%v/5 vs others) and customer reviews
 3. SELLER: Compare seller scores (%d/100) and trust indicators
 4. DELIVERY: Compare delivery estimates ("%s" vs others)
 5. POPULARITY: Compare number sold (%d units) and market acceptance
@@ -107,7 +114,7 @@ SPECIFIC AREAS TO COMPARE:
 RESPONSE LANGUAGE: %s
 
 PRODUCTS DATA:
-%s`, len(productDetails), len(productDetails), len(productDetails), lang, string(b))
+%s`, len(productDetails), len(productDetails), len(productDetails), deliveryInfo, len(productDetails), lang, string(b))
 
 	// Call LLM
 	text, err := g.call(ctx, prompt)
