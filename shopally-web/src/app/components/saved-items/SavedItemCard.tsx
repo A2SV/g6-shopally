@@ -5,6 +5,7 @@ import { useDarkMode } from "@/app/components/saved-items/DarkModeContext";
 import ToggleSwitch from "@/app/components/saved-items/ToggleSwitch";
 import { Trash2 } from "lucide-react";
 import { SavedItemUI } from "../../../types/types";
+import OpenLinkButton from "./AlibabaLinkButton";
 import Rating from "./Rating";
 
 // Extend SavedItemUI with optional callbacks
@@ -26,6 +27,7 @@ export default function SavedItemCard({
   priceAlertOn,
   placeholderText,
   id,
+  deeplinkUrl,
   onRemove,
   onUpdatePrice,
   onToggleAlert,
@@ -104,9 +106,7 @@ export default function SavedItemCard({
 
         {/* Actions */}
         <div className="flex items-center gap-2 mt-4">
-          <button className="flex-1 px-4 py-2 rounded-lg bg-[#0D2A4B] text-white hover:bg-[#133864] transition">
-            Buy on AliExpress
-          </button>
+          <OpenLinkButton deeplinkUrl={deeplinkUrl} />
           <button className="px-4 py-2 rounded-lg border text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition">
             Compare
           </button>

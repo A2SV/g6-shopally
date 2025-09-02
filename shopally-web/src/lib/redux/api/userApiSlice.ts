@@ -28,7 +28,7 @@ export const userApi = createApi({
       { query: string; priceMaxETB: number | null; minRating: number | null }
     >({
       query: (data) => ({
-        url: "products/search",
+        url: "products",
         method: "POST",
         body: data,
       }),
