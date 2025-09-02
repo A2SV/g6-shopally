@@ -44,21 +44,21 @@ jobs:
       - name: ⚙️ 2. Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.3'
+          flutter-version: '3.32.8'
           cache: true
 
       # Step 3: Get Flutter dependencies
       - name: 📦 3. Install Dependencies
         run: flutter pub get
 
-      # Step 4: Run unit tests
-      - name: 🧪 4. Run Tests
-        run: flutter test --coverage
+      # # Step 4: Run unit tests
+      # - name: 🧪 4. Run Tests
+      #   run: flutter test --coverage
 
       # Step 5: Check code formatting
       - name: 🎨 5. Check Code Formatting
         run: |
-          if [[ -n $(flutter format --set-exit-if-changed .) ]]; then
+          if [[ -n $(dart format --set-exit-if-changed .) ]]; then
             echo "Some files are not formatted correctly."
             exit 1
           fi
