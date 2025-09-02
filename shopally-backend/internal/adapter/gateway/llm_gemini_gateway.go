@@ -14,6 +14,7 @@ import (
 
 	"github.com/shopally-ai/internal/contextkeys"
 	"github.com/shopally-ai/pkg/domain"
+	"github.com/shopally-ai/pkg/util"
 )
 
 // GeminiLLMGateway implements domain.LLMGateway using Google Generative Language API (Gemini).
@@ -25,7 +26,8 @@ type GeminiLLMGateway struct {
 }
 
 // CompareProducts implements domain.LLMGateway.
-func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails []*domain.Product) (map[string]interface{}, error) {
+// CompareProducts implements domain.LLMGateway.
+func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails []*domain.Product) (*domain.ComparisonResult, error) {
 	if len(productDetails) == 0 {
 		return nil, fmt.Errorf("at least one product is required")
 	}
@@ -40,7 +42,7 @@ func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails [
 		return nil, fmt.Errorf("failed to marshal products: %w", err)
 	}
 
-	// Language hint
+	// Language detection
 	lang := "en"
 	if v := ctx.Value(contextkeys.RespLang); v != nil {
 		if s, ok := v.(string); ok && s != "" {
@@ -48,13 +50,64 @@ func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails [
 		}
 	}
 
-	prompt := "You are an assistant that compares e-commerce products. Return STRICT JSON only, no prose, with this shape: {\n  \"comparison\": [ { \"product\": <original product>, \"synthesis\": { \"pros\": [..], \"cons\": [..], \"isBestValue\": <bool>, \"features\": { <k>: <v> } } } ]\n}."
-	if lang == "am" {
-		prompt += " Respond in Amharic (am)."
-	} else {
-		prompt += " Respond in English (en)."
-	}
-	prompt += "\nProducts JSON: " + string(b)
+	prompt := fmt.Sprintf(`You are an expert e-commerce product comparison assistant. Analyze and compare %d products thoroughly.
+
+CRITICAL INSTRUCTIONS:
+1. Return STRICT JSON ONLY, no additional text or commentary
+2. JSON structure must be exactly this format:
+{
+  "products": [
+    {
+      "product": { /* complete original product object for product 1 */ },
+      "synthesis": {
+        "pros": ["advantage 1", "advantage 2", ...],
+        "cons": ["disadvantage 1", "disadvantage 2", ...],
+        "isBestValue": true/false,
+        "features": {
+          "priceScore": "excellent/good/fair/poor",
+          "qualityScore": "excellent/good/fair/poor",
+          "valueForMoney": "excellent/good/fair/poor",
+          "deliveryRating": "excellent/good/fair/poor"
+        }
+      }
+    },
+    {
+      "product": { /* complete original product object for product 2 */ },
+      "synthesis": {
+        "pros": ["advantage 1", "advantage 2", ...],
+        "cons": ["disadvantage 1", "disadvantage 2", ...],
+        "isBestValue": true/false,
+        "features": {
+          "priceScore": "excellent/good/fair/poor",
+          "qualityScore": "excellent/good/fair/poor",
+          "valueForMoney": "excellent/good/fair/poor",
+          "deliveryRating": "excellent/good/fair/poor"
+        }
+      }
+    }
+    /* include all %d products in the same format */
+  ]
+}
+
+FEATURE COMPARISON GUIDELINES:
+- For each product, identify features that MAKE IT DIFFERENT from others
+- Highlight what makes ONE PRODUCT BETTER than others in specific areas
+- Focus on COMPETITIVE ADVANTAGES and UNIQUE SELLING POINTS
+- Compare relative strengths and weaknesses across products
+
+SPECIFIC AREAS TO COMPARE:
+1. PRICE: Which offers best value? Consider ETB price, USD price, discounts, tax
+2. QUALITY: Compare product ratings (%.1f/5 vs others) and customer reviews
+3. SELLER: Compare seller scores (%d/100) and trust indicators
+4. DELIVERY: Compare delivery estimates ("%s" vs others)
+5. POPULARITY: Compare number sold (%d units) and market acceptance
+6. FEATURES: Compare summary bullets and unique offerings
+
+
+RESPONSE LANGUAGE: %s
+
+PRODUCTS DATA:
+%s`, len(productDetails), len(productDetails), len(productDetails), lang, string(b))
 
 	// Call LLM
 	text, err := g.call(ctx, prompt)
@@ -63,12 +116,19 @@ func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails [
 	}
 
 	clean := extractJSON(text)
-	var out map[string]interface{}
-	if err := json.Unmarshal([]byte(clean), &out); err != nil {
+
+	// Parse into ComparisonResult structure
+	var result domain.ComparisonResult
+	if err := json.Unmarshal([]byte(clean), &result); err != nil {
 		return nil, fmt.Errorf("failed to parse LLM response: %w", err)
 	}
 
-	return out, nil
+	// Validate that we got the expected number of comparisons
+	if len(result.Products) != len(productDetails) {
+		return nil, fmt.Errorf("LLM returned %d comparisons but expected %d", len(result.Products), len(productDetails))
+	}
+
+	return &result, nil
 }
 
 // NewGeminiLLMGateway creates a new gateway using the GEMINI_API_KEY from env if apiKey is empty.
@@ -85,29 +145,11 @@ func NewGeminiLLMGateway(apiKey string, fx domain.IFXClient) domain.LLMGateway {
 	}
 }
 
-type geminiRequest struct {
-	Contents []struct {
-		Parts []struct {
-			Text string `json:"text"`
-		} `json:"parts"`
-	} `json:"contents"`
-}
-
-type geminiResponse struct {
-	Candidates []struct {
-		Content struct {
-			Parts []struct {
-				Text string `json:"text"`
-			} `json:"parts"`
-		} `json:"content"`
-	} `json:"candidates"`
-}
-
 func (g *GeminiLLMGateway) call(ctx context.Context, prompt string) (string, error) {
 	if g.apiKey == "" {
 		return "", errors.New("missing GEMINI_API_KEY")
 	}
-	reqBody := geminiRequest{Contents: []struct {
+	reqBody := domain.GeminiRequest{Contents: []struct {
 		Parts []struct {
 			Text string `json:"text"`
 		} `json:"parts"`
@@ -136,7 +178,7 @@ func (g *GeminiLLMGateway) call(ctx context.Context, prompt string) (string, err
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return "", errors.New("gemini http status: " + resp.Status)
 	}
-	var gr geminiResponse
+	var gr domain.GeminiResponse
 	if err := json.NewDecoder(resp.Body).Decode(&gr); err != nil {
 		return "", err
 	}
@@ -280,6 +322,22 @@ OUTPUT:`, normalizedQuery)
 		m["is_etb"] = true
 	}
 
+	if isETB, ok := m["is_etb"].(bool); ok && isETB {
+		// Convert prices from ETB to USD if is_etb is true and prices are present
+		if minPrice, ok := m["min_sale_price"].(float64); ok && minPrice > 0 {
+			usdPrice, _, err := util.USDToETB(minPrice)
+			if err == nil {
+				m["min_sale_price"] = minPrice / usdPrice
+			}
+		}
+		if maxPrice, ok := m["max_sale_price"].(float64); ok && maxPrice > 0 {
+			usdPrice, _, err := util.USDToETB(maxPrice)
+			if err == nil {
+				m["max_sale_price"] = maxPrice / usdPrice
+			}
+		}
+	}
+
 	// Ensure keywords exist and are in English (basic fallback)
 	if keywords, ok := m["keywords"].(string); !ok || strings.TrimSpace(keywords) == "" {
 		// If LLM failed to extract keywords, use original query but this should be rare
@@ -337,67 +395,6 @@ func extractStrictJSON(s string) string {
 
 	return s
 }
-
-// SummarizeProduct requests a single JSON string summary from provided product data.
-// func (g *GeminiLLMGateway) SummarizeProduct(ctx context.Context, p *domain.Product) ([]string, error) {
-// 	lang, _ := ctx.Value("Accept-Language").(string)
-// 	if lang == "" {
-// 		lang = "am"
-// 	}
-
-// 	instr := "You are a product summarization assistant. " +
-// 		"Using ONLY the provided fields (Title, Description, CustomerHighlights, CustomerReview, SellerScore, ProductRating), " +
-// 		"write a short natural-language product summary (2–3 sentences). " +
-// 		"Incorporate information from CustomerHighlights, CustomerReview, and ProductRating to describe the product features and strengths naturally, " +
-// 		"but do NOT mention phrases like 'customers say', 'appreciate', or explicitly state the rating. " +
-// 		"Do NOT include Price, DeliveryEstimate, or NumberOfSoldItems. " +
-// 		"Do NOT invent or infer any details beyond the provided fields. "
-
-// 	if lang == "am" {
-// 		instr += "Write in Amharic (am). "
-// 	} else {
-// 		instr += "Write in English (en). "
-// 	}
-
-// 	instr += "Output format: strictly a JSON array with exactly ONE element: the product summary string. " +
-// 		"Ensure the JSON is syntactically valid."
-
-// 	base := instr +
-// 		" Title: " + p.Title +
-// 		", Description: " + p.Description +
-// 		", CustomerHighlights: " + p.CustomerHighlights +
-// 		", SellerScore: " + fmtInt(p.SellerScore)
-
-// 	text, err := g.call(ctx, base)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	clean := extractJSON(text)
-
-// 	// Unmarshal directly into []string
-// 	var out []string
-// 	if err := json.Unmarshal([]byte(clean), &out); err == nil && len(out) > 0 {
-// 		return out, nil
-// 	}
-
-// 	// fallback: extract first non-empty line if JSON parse fails
-// 	lines := strings.Split(strings.ReplaceAll(clean, "\r", ""), "\n")
-// 	for _, ln := range lines {
-// 		ln = strings.TrimSpace(ln)
-// 		if ln == "" || strings.HasPrefix(ln, "```") {
-// 			continue
-// 		}
-// 		if len(ln) >= 2 && ((ln[0] == '"' && ln[len(ln)-1] == '"') || (ln[0] == '\'' && ln[len(ln)-1] == '\'')) {
-// 			ln = strings.Trim(ln, "'\"")
-// 		}
-// 		if ln != "" {
-// 			return []string{ln}, nil
-// 		}
-// 	}
-
-// 	return []string{"Summary unavailable"}, nil
-// }
 
 func extractJSON(s string) string {
 	s = strings.TrimSpace(strings.ReplaceAll(s, "\r", ""))
