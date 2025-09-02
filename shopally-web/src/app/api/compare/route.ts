@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 const API_BASE = process.env.API_BASE;
 
 export async function POST(
-  req: NextRequest
+  req: NextRequest,
 ): Promise<NextResponse<ComparisonResponse>> {
   try {
     const body = await req.json();
@@ -25,14 +25,14 @@ export async function POST(
           error: "Products array must have 2 to 4 items",
           data: { comparison: [] },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!deviceId) {
       return NextResponse.json(
         { error: "Device ID is required", data: { comparison: [] } },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -54,7 +54,7 @@ export async function POST(
           error: data?.status || "Failed to compare products",
           data: { comparison: [] },
         },
-        { status: backendRes.status }
+        { status: backendRes.status },
       );
     }
 
@@ -63,7 +63,7 @@ export async function POST(
     console.error("POST /api/compare error:", error);
     return NextResponse.json(
       { error: "Something went wrong", data: { comparison: [] } },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

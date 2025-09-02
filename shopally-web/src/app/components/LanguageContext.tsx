@@ -19,7 +19,7 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(
-  undefined
+  undefined,
 );
 
 // Cache for translations to avoid repeated API calls
@@ -109,8 +109,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
         const response = await fetch(
           `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(
-            text
-          )}`
+            text,
+          )}`,
         );
 
         if (!response.ok) {
@@ -130,7 +130,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         return text; // Return original text if translation fails
       }
     },
-    [currentLanguage]
+    [currentLanguage],
   );
 
   // Clear translations when switching to English
@@ -167,7 +167,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
       return key;
     },
-    [currentLanguage, translations, translateText]
+    [currentLanguage, translations, translateText],
   );
 
   return (

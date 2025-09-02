@@ -162,8 +162,8 @@ export default function Sidebar({ activePage = "profile" }: SidebarProps) {
                   activePage === item.id
                     ? "bg-[var(--color-brand-yellow)] text-gray-900 font-medium"
                     : isDarkMode
-                    ? "text-gray-300 hover:bg-[#0000001A]"
-                    : "text-gray-700 hover:bg-gray-100"
+                      ? "text-gray-300 hover:bg-[#0000001A]"
+                      : "text-gray-700 hover:bg-gray-100"
                 }`}
               >
                 {item.icon}
@@ -184,8 +184,8 @@ export default function Sidebar({ activePage = "profile" }: SidebarProps) {
                 activePage === languageItem.id
                   ? "bg-[var(--color-brand-yellow)] text-gray-900 font-medium"
                   : isDarkMode
-                  ? "text-gray-300 hover:bg-[#0000001A]"
-                  : "text-gray-700 hover:bg-gray-100"
+                    ? "text-gray-300 hover:bg-[#0000001A]"
+                    : "text-gray-700 hover:bg-gray-100"
               }`}
             >
               {languageItem.icon}

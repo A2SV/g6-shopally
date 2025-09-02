@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 const API_BASE = process.env.API_BASE;
 
 export async function POST(
-  req: NextRequest
+  req: NextRequest,
 ): Promise<NextResponse<AlertCreateResponse>> {
   try {
     const body = await req.json();
@@ -17,7 +17,7 @@ export async function POST(
     if (!productId || !deviceId || !currentPriceETB) {
       return NextResponse.json(
         { error: "Missing required fields", data: null },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -39,7 +39,7 @@ export async function POST(
           error: data?.status || "Failed to create alert",
           data: null,
         },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -48,14 +48,14 @@ export async function POST(
     console.error("POST /api/alerts error:", error);
     return NextResponse.json(
       { error: "Something went wrong", data: null },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ): Promise<NextResponse<AlertCreateResponse>> {
   const { id } = params;
 
@@ -66,7 +66,7 @@ export async function DELETE(
     if (!deviceId) {
       return NextResponse.json(
         { error: "Device ID is required", data: null },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -87,7 +87,7 @@ export async function DELETE(
           error: data?.status || "Failed to delete Alert",
           data: null,
         },
-        { status: backendRes.status }
+        { status: backendRes.status },
       );
     }
 
@@ -96,7 +96,7 @@ export async function DELETE(
     console.error("DELETE /api/alerts/[id] error:", error);
     return NextResponse.json(
       { error: "Something went wrong", data: null },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

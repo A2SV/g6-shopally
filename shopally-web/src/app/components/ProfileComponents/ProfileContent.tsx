@@ -73,7 +73,7 @@ export default function ProfileContent() {
     setSelectedCategories((prev) =>
       prev.includes(originalCategory)
         ? prev.filter((c) => c !== originalCategory)
-        : [...prev, originalCategory]
+        : [...prev, originalCategory],
     );
   };
 
@@ -98,7 +98,7 @@ export default function ProfileContent() {
   };
 
   const handleImageUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -272,8 +272,8 @@ export default function ProfileContent() {
                 showMessage.type === "success"
                   ? "bg-green-100 text-green-800 border border-green-200"
                   : showMessage.type === "error"
-                  ? "bg-red-100 text-red-800 border border-red-200"
-                  : "bg-blue-100 text-blue-800 border border-blue-200"
+                    ? "bg-red-100 text-red-800 border border-red-200"
+                    : "bg-blue-100 text-blue-800 border border-blue-200"
               }`}
             >
               {showMessage.message}
@@ -462,8 +462,8 @@ export default function ProfileContent() {
                         selectedCategories.includes(originalCategory)
                           ? "bg-[var(--color-brand-yellow)] text-gray-900 border-[#FFD300]"
                           : isDarkMode
-                          ? "bg-[#0000001A] text-gray-300 hover:bg-[#00000033] border-gray-600 hover:border-gray-500"
-                          : "bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200 hover:border-gray-300"
+                            ? "bg-[#0000001A] text-gray-300 hover:bg-[#00000033] border-gray-600 hover:border-gray-500"
+                            : "bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200 hover:border-gray-300"
                       }`}
                     >
                       {translatedCategory}

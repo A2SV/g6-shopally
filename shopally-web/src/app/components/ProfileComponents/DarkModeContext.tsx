@@ -8,7 +8,7 @@ interface DarkModeContextType {
 }
 
 const DarkModeContext = createContext<DarkModeContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export function DarkModeProvider({ children }: { children: ReactNode }) {

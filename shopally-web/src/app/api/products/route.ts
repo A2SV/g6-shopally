@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 const API_BASE = process.env.API_BASE;
 
 export async function POST(
-  req: NextRequest
+  req: NextRequest,
 ): Promise<NextResponse<ProductResponse>> {
   try {
     const body = await req.json();
@@ -17,7 +17,7 @@ export async function POST(
     if (!query || !deviceId) {
       return NextResponse.json(
         { error: "Missing required fields", data: null },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -39,7 +39,7 @@ export async function POST(
           error: data?.status || "Failed to search products",
           data: null,
         },
-        { status: backendRes.status }
+        { status: backendRes.status },
       );
     }
 
@@ -48,7 +48,7 @@ export async function POST(
     console.error("POST /api/products/search error:", error);
     return NextResponse.json(
       { error: "Something went wrong", data: null },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
