@@ -18,6 +18,7 @@ import (
 
 	"github.com/shopally-ai/internal/config"
 	"github.com/shopally-ai/pkg/domain"
+	"github.com/shopally-ai/pkg/util"
 )
 
 // MapAliExpressResponseToProducts transforms the raw AliExpress API response JSON
@@ -104,13 +105,22 @@ func MapAliExpressResponseToProducts(data []byte) ([]*domain.Product, error) {
 				discount := parsePercentOrZero(p.Discount)
 				rating := parsePercentOrZero(p.EvaluateRate)
 
+				etb, _, err := util.USDToETB(usd)
+				if err != nil {
+					log.Printf("[AlibabaGateway] USD to ETB conversion failed for product ID %d with USD %.2f: %v. Setting ETB to 0.", p.ProductID, usd, err)
+					etb = 0
+				}
+
+				// log change
+				log.Println("Mapping AliExpress product ID:", p.ProductID, "Title:", p.ProductTitle, "USD Price:", usd, "ETB Price:", etb)
+
 				prod := &domain.Product{
 					ID:                strconv.FormatInt(p.ProductID, 10),
 					Title:             strings.TrimSpace(p.ProductTitle),
 					ImageURL:          strings.TrimSpace(p.ProductMainImageURL),
 					AIMatchPercentage: 0, // Placeholder
 					Price: domain.Price{
-						ETB:         0,
+						ETB:         etb,
 						USD:         usd,
 						FXTimestamp: time.Now().UTC(),
 					},
@@ -231,7 +241,7 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, Keywords string,
 		"sign_method":     "sha256",
 		"keywords":        Keywords,
 		"page_no":         "1",         // Default page number
-		"page_size":       "10",        // Default page size
+		"page_size":       "5",         // Default page size
 		"target_currency": "USD",       // Default currency
 		"target_language": "en",        // Default language
 		"sort":            "relevancy", // Default sort order

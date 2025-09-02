@@ -33,7 +33,6 @@ func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails [
 		return nil, fmt.Errorf("at least one product is required")
 	}
 
-	// Build compact JSON payload for LLM
 	req := struct {
 		Products []*domain.Product `json:"products"`
 	}{Products: productDetails}
@@ -118,6 +117,9 @@ PRODUCTS DATA:
 
 	// Call LLM
 	text, err := g.call(ctx, prompt)
+	log.Println("LLM raw comparison response:", text)
+	log.Println("LLM comparison error:", err)
+
 	if err != nil {
 		return nil, fmt.Errorf("LLM API call failed: %w", err)
 	}
@@ -134,6 +136,8 @@ PRODUCTS DATA:
 	if len(result.Products) != len(productDetails) {
 		return nil, fmt.Errorf("LLM returned %d comparisons but expected %d", len(result.Products), len(productDetails))
 	}
+
+	log.Printf("LLM comparison result: %+v", result)
 
 	return &result, nil
 }
@@ -157,7 +161,6 @@ func (g *GeminiLLMGateway) call(ctx context.Context, prompt string) (string, err
 		return "", errors.New("missing GEMINI_API_KEY")
 	}
 	reqBody := domain.GeminiRequest{
-		MaxOutputTokens: 250,
 		Contents: []struct {
 			Parts []struct {
 				Text string `json:"text"`
@@ -471,6 +474,8 @@ func (g *GeminiLLMGateway) SummarizeProduct(ctx context.Context, p *domain.Produ
 
 	// Generate enhanced content in the appropriate language
 	enhancedProduct, err := g.enhanceProductContent(ctx, p, userPrompt, lang, aiMatchPercentage)
+	log.Println("Enhanced product:", enhancedProduct)
+	log.Println("Enhancement error:", err)
 	if err != nil {
 		// If enhancement fails, return the original product with basic enhancements
 		log.Printf("Product enhancement failed, returning original product: %v", err)
@@ -506,7 +511,7 @@ You are an expert e-commerce product content enhancer. Return the COMPLETE produ
 1. description: Make comprehensive yet engaging (3-4 sentences)
 2. customerHighlights: Make more compelling and benefit-focused
 3. customerReview: Make more natural and persuasive
-4. summaryBullets: Create 3-5 bullet points with ejection-style formatting (★ → •)
+4. summaryBullets: Create 3-5 bullet points with ejection-style formatting
 5. title: Keep meaning but make more appealing if needed
 
 ## REQUIRED OUTPUT:

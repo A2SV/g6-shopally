@@ -51,10 +51,7 @@ type SgResp struct {
 }
 
 type GeminiRequest struct {
-	// MaxOutputTokens instructs the model to limit the number of output tokens.
-	// Matches Google Generative Language API field name `maxOutputTokens`.
-	MaxOutputTokens int `json:"maxOutputTokens,omitempty"`
-	Contents        []struct {
+	Contents []struct {
 		Parts []struct {
 			Text string `json:"text"`
 		} `json:"parts"`
