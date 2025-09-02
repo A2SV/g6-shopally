@@ -10,7 +10,7 @@ import (
 	"github.com/shopally-ai/pkg/domain"
 )
 
-func SetupRouter(cfg *config.Config, limiter *middleware.RateLimiter, searchHandler *handler.SearchHandler, compareHandler *handler.CompareHandler, alertHandler *handler.AlertHandler) *gin.Engine {
+func SetupRouter(cfg *config.Config, limiter *middleware.RateLimiter, searchHandler *handler.SearchHandler, compareHandler *handler.CompareHandler, alertHandler *handler.AlertHandler, priceHandler *handler.PriceHandler) *gin.Engine {
 	router := gin.Default()
 
 	version1 := router.Group("/api/v1")
@@ -28,7 +28,10 @@ func SetupRouter(cfg *config.Config, limiter *middleware.RateLimiter, searchHand
 		limitedRouter.POST("/compare", func(c *gin.Context) {
 			c.JSON(http.StatusOK, domain.Response{Data: map[string]interface{}{"message": "limited message"}})
 		})
+
+		// search products
 		limitedRouter.GET("/search", searchHandler.Search)
+		limitedRouter.GET("/product/:id/price", priceHandler.GetPrice)
 
 		// Alerts endpoints
 		limitedRouter.POST("/alerts", alertHandler.CreateAlertHandler)
