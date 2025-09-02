@@ -1,11 +1,12 @@
-//src/app/api/alerts/route.ts
+// src/app/api/users/route.ts
 import { AlertCreateResponse } from "@/types/SavedItems/AlertCreateResponse";
 import { NextRequest, NextResponse } from "next/server";
 
 const API_BASE = process.env.API_BASE;
 
+// ✅ Create new alert
 export async function POST(
-  req: NextRequest,
+  req: NextRequest
 ): Promise<NextResponse<AlertCreateResponse>> {
   try {
     const body = await req.json();
@@ -17,7 +18,7 @@ export async function POST(
     if (!productId || !deviceId || !currentPriceETB) {
       return NextResponse.json(
         { error: "Missing required fields", data: null },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -35,38 +36,43 @@ export async function POST(
 
     if (!response.ok) {
       return NextResponse.json(
-        {
-          error: data?.status || "Failed to create alert",
-          data: null,
-        },
-        { status: response.status },
+        { error: data?.status || "Failed to create alert", data: null },
+        { status: response.status }
       );
     }
 
     return NextResponse.json({ data, error: null }, { status: 201 });
   } catch (error) {
-    console.error("POST /api/alerts error:", error);
+    console.error("POST /api/users error:", error);
     return NextResponse.json(
       { error: "Something went wrong", data: null },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-): Promise<NextResponse<AlertCreateResponse>> {
-  const { id } = params;
 
+export async function DELETE(
+  req: NextRequest
+): Promise<NextResponse<AlertCreateResponse>> {
   try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Alert ID is required", data: null },
+        { status: 400 }
+      );
+    }
+
     // ✅ Get deviceId from headers
     const deviceId = req.headers.get("x-device-id");
 
     if (!deviceId) {
       return NextResponse.json(
         { error: "Device ID is required", data: null },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -74,7 +80,7 @@ export async function DELETE(
       method: "DELETE",
       headers: {
         "X-Device-ID": deviceId,
-        "Accept-Language": "en-US", // TODO: make dynamic later
+        "Accept-Language": "en-US",
         "Content-Type": "application/json",
       },
     });
@@ -83,20 +89,17 @@ export async function DELETE(
 
     if (!backendRes.ok) {
       return NextResponse.json(
-        {
-          error: data?.status || "Failed to delete Alert",
-          data: null,
-        },
-        { status: backendRes.status },
+        { error: data?.status || "Failed to delete Alert", data: null },
+        { status: backendRes.status }
       );
     }
 
     return NextResponse.json({ data, error: null }, { status: 200 });
   } catch (error) {
-    console.error("DELETE /api/alerts/[id] error:", error);
+    console.error("DELETE /api/users error:", error);
     return NextResponse.json(
       { error: "Something went wrong", data: null },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

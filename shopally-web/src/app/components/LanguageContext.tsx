@@ -26,48 +26,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(
 const translationCache = new Map<string, string>();
 
 // Common text translations that we'll pre-load
-const commonTexts = [
-  "Home",
-  "How It Works",
-  "Compare",
-  "Saved Items",
-  "Profile",
-  "Switch to Amharic",
-  "Switch to English",
-  "Dark Mode",
-  "Light Mode",
-  "Profile Settings",
-  "User Information",
-  "Edit",
-  "Cancel",
-  "Full Name",
-  "Email Address",
-  "Password",
-  "Change",
-  "Preferred Product Categories",
-  "Default Currency",
-  "Shipping Region",
-  "Language Preference",
-  "Save Preferences",
-  "Account Statistics",
-  "Total Orders",
-  "Reviews",
-  "Wishlist",
-  "Electronics",
-  "Fashion",
-  "Home & Garden",
-  "Sports & Outdoors",
-  "Books",
-  "Beauty & Health",
-  "Automotive",
-  "Toys & Games",
-  "Products Compared",
-  "Orders Placed",
-  "Total Saved",
-  "AI Match Rate",
-  "No changes detected. Nothing to update.",
-  "Profile updated successfully!",
-];
+
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [currentLanguage, setCurrentLanguage] = useState<Language>("English");

@@ -86,7 +86,7 @@ export default function ProfileContent() {
         type: "success",
         message: t("Preferences saved successfully!"),
       });
-    } catch (error) {
+    } catch {
       setShowMessage({
         type: "error",
         message: t("Failed to save preferences. Please try again."),
@@ -115,7 +115,7 @@ export default function ProfileContent() {
           });
         };
         reader.readAsDataURL(file);
-      } catch (error) {
+      } catch {
         setShowMessage({
           type: "error",
           message: t("Failed to upload image. Please try again."),
@@ -166,7 +166,7 @@ export default function ProfileContent() {
       });
 
       setIsEditing(false);
-    } catch (error) {
+    } catch {
       setShowMessage({
         type: "error",
         message: t("Failed to update profile. Please try again."),
@@ -286,7 +286,7 @@ export default function ProfileContent() {
               <div className="relative">
                 <div className="w-20 h-20 bg-[var(--color-brand-yellow)] rounded-full flex items-center justify-center overflow-hidden">
                   {profileImage ? (
-                    <img
+                    <Image
                       src={profileImage}
                       alt="Profile"
                       className="w-full h-full object-cover"
