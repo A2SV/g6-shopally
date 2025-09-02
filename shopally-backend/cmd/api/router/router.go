@@ -25,9 +25,7 @@ func SetupRouter(cfg *config.Config, limiter *middleware.RateLimiter, searchHand
 		limitedRouter.GET("/limited", func(c *gin.Context) {
 			c.JSON(http.StatusOK, domain.Response{Data: map[string]interface{}{"message": "limited message"}})
 		})
-		limitedRouter.POST("/compare", func(c *gin.Context) {
-			c.JSON(http.StatusOK, domain.Response{Data: map[string]interface{}{"message": "limited message"}})
-		})
+		limitedRouter.POST("/compare", compareHandler.CompareProducts)
 		limitedRouter.GET("/search", searchHandler.Search)
 
 		// Alerts endpoints
