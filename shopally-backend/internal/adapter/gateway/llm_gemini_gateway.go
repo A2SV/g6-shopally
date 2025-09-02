@@ -156,15 +156,18 @@ func (g *GeminiLLMGateway) call(ctx context.Context, prompt string) (string, err
 	if g.apiKey == "" {
 		return "", errors.New("missing GEMINI_API_KEY")
 	}
-	reqBody := domain.GeminiRequest{Contents: []struct {
-		Parts []struct {
-			Text string `json:"text"`
-		} `json:"parts"`
-	}{
-		{Parts: []struct {
-			Text string `json:"text"`
-		}{{Text: prompt}}},
-	}}
+	reqBody := domain.GeminiRequest{
+		MaxOutputTokens: 250,
+		Contents: []struct {
+			Parts []struct {
+				Text string `json:"text"`
+			} `json:"parts"`
+		}{
+			{Parts: []struct {
+				Text string `json:"text"`
+			}{{Text: prompt}}},
+		},
+	}
 	b, _ := json.Marshal(reqBody)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, g.modelURL+"?key="+g.apiKey, bytes.NewReader(b))
 	if err != nil {
@@ -227,65 +230,77 @@ func (g *GeminiLLMGateway) ParseIntent(ctx context.Context, query string) (map[s
 		return nil, errors.New("query contains potentially harmful or prohibited content")
 	}
 
-	// 3) Build a STRICT JSON-only prompt for intent parsing that handles both English and Amharic
 	prompt := fmt.Sprintf(`STRICT INSTRUCTIONS: OUTPUT ONLY RAW JSON, NO OTHER TEXT, NO EXPLANATIONS, NO CODE BLOCKS.
 
-You are an e-commerce search intent parser. Extract parameters from shopping queries in ANY LANGUAGE (English, Amharic, or mixed) and output ONLY valid JSON in English.
+You are an advanced e-commerce search intent parser with expert budget extraction capabilities.
 
-RULES:
-- Output pure JSON only, no other text
-- Understand queries in English, Amharic (ፊደል or latin script), or mixed languages
-- Extract and translate all content to English for the JSON output
-- Use null for missing parameters
-- All prices should be converted to and output in USD
-- Detect prices written in words or numbers (e.g., "five hundred" = 500, "አምስት መቶ" = 500, "ሁለት ሺህ" = 2000)
-- Understand price ranges: "under 1000", "over 500", "between 100 and 200", "around 1500", "ከ500 በታች", "ከ1000 በላይ"
-- Understand price-related terms in any language: "cheap"/"ርካሽ", "expensive"/"ውድ", "affordable", "budget"/"በጀት", "pricey"
-- delivery_days = maximum expected days
-- ship_to_country = "ET" (always)
-- target_currency = "USD" (always) 
-- target_language = "en" (always)
-- is_etb = boolean (true if user specified ETB currency or no currency specified, false if user specified USD)
+## CRITICAL RULES:
+1. OUTPUT ONLY PURE JSON - NO OTHER TEXT WHATSOEVER
+2. EXTRACT AND CONVERT NUMBER WORDS TO DIGITS (e.g., "five hundred" → 500, "ሁለት ሺህ" → 2000)
+3. PRESERVE ORIGINAL CURRENCY VALUES - DO NOT CONVERT CURRENCIES
+4. DETECT BOTH MINIMUM AND MAXIMUM PRICE RANGES
+5. OUTPUT NUMERICAL VALUES EXACTLY AS EXTRACTED
 
-CURRENCY HANDLING:
+## BUDGET EXTRACTION RULES:
+- Convert number words to digits: "five" → 5, "twenty" → 20, "one hundred" → 100
+- Convert Amharic numbers: "አንድ" → 1, "ሁለት" → 2, "አምስት" → 5, "መቶ" → 100, "ሺህ" → 1000
+- Detect ranges: "between 100 and 200" → min=100, max=200
+- Detect inequalities: "under 500", "less than 1000" → max=500, max=1000
+- Detect inequalities: "over 200", "more than 300" → min=200, min=300
+- Detect approximate: "around 1500", "about 2000" → use as max_sale_price
+- Extract exact numbers: "500 ETB" → preserve as 500, is_etb=true
+
+## CURRENCY HANDLING:
+- PRESERVE ORIGINAL NUMERICAL VALUES - NO CURRENCY CONVERSION
 - If user specifies "ETB", "birr", "ብር" → is_etb = true
 - If user specifies "$", "USD", "dollars" → is_etb = false  
 - If no currency specified → is_etb = true (default to ETB)
-- Always convert and output prices in USD regardless of is_etb value
+- Output prices as exact numbers without conversion
 
-LANGUAGE HANDLING:
+## LANGUAGE PROCESSING:
 - Extract keywords in English regardless of input language
-- Translate Amharic product names to English (e.g., "ስልክ" → "phone", "ኮምፒዩተር" → "computer")
-- Maintain numerical values as-is but ensure they're in the correct currency context
+- Translate Amharic product names to English (e.g., "ስልክ" → "phone")
+- Convert number words to digits in all languages
+- Understand mixed language queries
 
-JSON SCHEMA:
+## JSON SCHEMA:
 {
-  "keywords": "string",           // Always in English, extracted from any language input
+  "keywords": "string",           // English keywords from any language input
   "category_ids": "string|null",
-  "min_sale_price": number|null,  // Always in USD
-  "max_sale_price": number|null,  // Always in USD
+  "min_sale_price": number|null,  // Exact numerical value as mentioned
+  "max_sale_price": number|null,  // Exact numerical value as mentioned  
   "delivery_days": number|null,
   "ship_to_country": "ET",
   "target_currency": "USD",
   "target_language": "en",
-  "is_etb": boolean
+  "is_etb": boolean,              // Currency context (true=ETB, false=USD)
+  "original_budget": "string|null" // Original budget phrase for reference
 }
 
-EXAMPLES (User Query in any language -> English JSON Output):
+## EXAMPLES (User Query -> JSON Output):
 
-"ስልክ ከአምስት ሺህ ብር በታች" -> {"keywords":"phone","min_sale_price":null,"max_sale_price":85.00,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true}
+"smartphone under five hundred birr" -> {"keywords":"smartphone","min_sale_price":null,"max_sale_price":500,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true,"original_budget":"under five hundred birr"}
 
-"gaming laptop under one thousand five hundred dollars" -> {"keywords":"gaming laptop","min_sale_price":null,"max_sale_price":1500.0,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":false}
+"laptop between one thousand and two thousand ETB" -> {"keywords":"laptop","min_sale_price":1000,"max_sale_price":2000,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true,"original_budget":"between one thousand and two thousand ETB"}
 
-"የቤት እቃዎች ከ100 እስከ 200 ዶላር" -> {"keywords":"home appliances","min_sale_price":100.0,"max_sale_price":200.0,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":false}
+"watch over two hundred dollars" -> {"keywords":"watch","min_sale_price":200,"max_sale_price":null,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":false,"original_budget":"over two hundred dollars"}
 
-"ርካሽ ሻጭ" -> {"keywords":"shoes","min_sale_price":null,"max_sale_price":20.00,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true}
+"ስልክ ከአምስት መቶ እስከ ሺህ ብር" -> {"keywords":"phone","min_sale_price":500,"max_sale_price":1000,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true,"original_budget":"ከአምስት መቶ እስከ ሺህ ብር"}
 
-"expensive electronics over two thousand" -> {"keywords":"electronics","min_sale_price":34.00,"max_sale_price":null,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true}
+"computer around one thousand five hundred" -> {"keywords":"computer","min_sale_price":null,"max_sale_price":1500,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true,"original_budget":"around one thousand five hundred"}
 
-"በጀት ኮምፒዩተር ከአስር ሺህ ብር በታች" -> {"keywords":"computer","min_sale_price":null,"max_sale_price":170.00,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true}
+"expensive shoes under ሁለት ሺህ ብር" -> {"keywords":"shoes","min_sale_price":null,"max_sale_price":2000,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true,"original_budget":"under ሁለት ሺህ ብር"}
 
-"ውድ ሰዓት በ5 ቀናት ውስጥ" -> {"keywords":"watch","min_sale_price":50.0,"max_sale_price":null,"category_ids":null,"delivery_days":5,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true}
+"ተንሸራታች ከአምስት ሺህ ብር በላይ" -> {"keywords":"sneakers","min_sale_price":5000,"max_sale_price":null,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true,"original_budget":"ከአምስት ሺህ ብር በላይ"}
+
+## NUMBER WORD CONVERSION REFERENCE:
+English: one=1, two=2, three=3, four=4, five=5, six=6, seven=7, eight=8, nine=9, ten=10,
+         twenty=20, thirty=30, forty=40, fifty=50, sixty=60, seventy=70, eighty=80, ninety=90,
+         hundred=100, thousand=1000, million=1000000
+
+Amharic: አንድ=1, ሁለት=2, ሦስት=3, አራት=4, አምስት=5, ስድስት=6, ሰባት=7, ስምንት=8, ዘጠኝ=9, አስር=10,
+         ሃያ=20, ሰላሳ=30, አርባ=40, አምሳ=50, ስልሳ=60, ሰባ=70, ሰማንያ=80, ዘጠና=90,
+         መቶ=100, ሺህ=1000, ሚሊዮን=1000000
 
 INPUT QUERY: "%s"
 OUTPUT:`, normalizedQuery)
@@ -318,6 +333,8 @@ OUTPUT:`, normalizedQuery)
 			"is_etb":          true, // Default to ETB
 		}
 	}
+
+	// convert "min_sale_price" and "max_sale_price" to float64 if they are numbers
 
 	// Enforce required fields
 	m["ship_to_country"] = "ET"
