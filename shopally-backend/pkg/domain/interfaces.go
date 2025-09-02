@@ -16,7 +16,7 @@ type LLMGateway interface {
 	ParseIntent(ctx context.Context, query string) (map[string]interface{}, error)
 	// SummarizeProduct generates short bullet points for a product based on provided fields.
 	SummarizeProduct(context.Context, *Product, string) (*Product, error)
-	CompareProducts(ctx context.Context, productDetails []*Product) (map[string]interface{}, error)
+	CompareProducts(ctx context.Context, productDetails []*Product) (*ComparisonResult, error)
 }
 
 // CacheGateway defines the contract for a caching service.

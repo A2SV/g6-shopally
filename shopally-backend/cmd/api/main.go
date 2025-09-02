@@ -87,14 +87,16 @@ func main() {
 	alertsColl := db.Collection(collName)
 	alertRepo := repo.NewMongoAlertRepository(alertsColl)
 	alertMgr := usecase.NewAlertManager(alertRepo)
+
 	alertHandler := handler.NewAlertHandler(alertMgr)
+	compareHandler := handler.NewCompareHandler(usecase.NewCompareProductsUseCase(lg))
 
 	// Price service & handler
 	priceSvc := util.New(ag)
 	priceHandler := handler.NewPriceHandler(priceSvc)
 
 	// Initialize router
-	router := router.SetupRouter(cfg, limiter, searchHandler, alertHandler, priceHandler)
+	router := router.SetupRouter(cfg, limiter, searchHandler, compareHandler, alertHandler, priceHandler)
 
 	// Start the server
 	log.Println("Starting server on port", cfg.Server.Port)

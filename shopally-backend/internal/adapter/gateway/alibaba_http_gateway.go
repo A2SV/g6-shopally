@@ -116,7 +116,6 @@ func MapAliExpressResponseToProducts(data []byte) ([]*domain.Product, error) {
 					},
 					ProductRating:      rating,
 					SellerScore:        0, // Placeholder
-					SellerName:         strings.TrimSpace(p.ShopName),
 					DeliveryEstimate:   strings.TrimSpace(p.ShipToDays),
 					Description:        "", // Not available in current API response snippet
 					CustomerHighlights: "", // Not available in current API response snippet

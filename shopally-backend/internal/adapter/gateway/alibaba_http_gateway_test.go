@@ -72,7 +72,6 @@ func TestMapAliExpressResponseToProducts(t *testing.T) {
 		p := products[0]
 		assert.Equal(t, "33006951782", p.ID)
 		assert.Equal(t, "Spring Autumn mother daughter dress matching outfits", p.Title)
-		assert.Equal(t, "Mock Shop", p.SellerName)
 
 		assert.InDelta(t, 15.9, p.Price.USD, 0.0001)
 		assert.InDelta(t, 0.1, p.TaxRate, 0.0001)

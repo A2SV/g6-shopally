@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shopally-ai/internal/contextkeys"
 	"github.com/shopally-ai/pkg/domain"
 	"github.com/shopally-ai/pkg/usecase"
 )
@@ -22,6 +24,19 @@ func NewCompareHandler(uc usecase.CompareProductsExecutor) *CompareHandler {
 
 // CompareProducts is the Gin handler for POST /compare.
 func (h *CompareHandler) CompareProducts(c *gin.Context) {
+	// Require Accept-Language
+	lang := c.GetHeader("Accept-Language")
+	if lang == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"data": nil,
+			"error": gin.H{
+				"code":    "INVALID_INPUT",
+				"message": "Missing required header: Accept-Language",
+			},
+		})
+		return
+	}
+
 	var requestBody struct {
 		Products []*domain.Product `json:"products"`
 	}
@@ -50,8 +65,16 @@ func (h *CompareHandler) CompareProducts(c *gin.Context) {
 		return
 	}
 
+	// Attach language to context (support 'am' for Amharic, else default to 'en')
+	langCode := lang
+	if len(langCode) > 2 {
+		langCode = langCode[:2]
+	}
+	ctx := c.Request.Context()
+	ctx = context.WithValue(ctx, contextkeys.RespLang, langCode)
+
 	// Execute use case
-	comparisonResult, err := h.compareUseCase.Execute(c.Request.Context(), requestBody.Products)
+	comparisonResult, err := h.compareUseCase.Execute(ctx, requestBody.Products)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"data": nil,

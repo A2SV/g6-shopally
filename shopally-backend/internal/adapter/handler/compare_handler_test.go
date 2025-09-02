@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shopally-ai/internal/contextkeys"
 	"github.com/shopally-ai/pkg/domain"
 	"github.com/shopally-ai/pkg/usecase"
 	"github.com/stretchr/testify/assert"
@@ -23,6 +24,14 @@ func TestCompareProducts(t *testing.T) {
 		handler := NewCompareHandler(mockUseCase)
 
 		router := gin.Default()
+		// Add context keys middleware
+		router.Use(func(c *gin.Context) {
+			lang := c.GetHeader("Accept-Language")
+			if lang == "" {
+				lang = "en"
+			}
+			c.Set(string(contextkeys.RespLang), lang)
+		})
 		router.POST("/compare", handler.CompareProducts)
 
 		productsToCompare := []*domain.Product{
@@ -42,6 +51,7 @@ func TestCompareProducts(t *testing.T) {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest(http.MethodPost, "/compare", bytes.NewBuffer(requestBody))
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept-Language", "en")
 		router.ServeHTTP(w, req)
 
 		// Assert
@@ -63,6 +73,14 @@ func TestCompareProducts(t *testing.T) {
 		handler := NewCompareHandler(mockUseCase)
 
 		router := gin.Default()
+		// Add context keys middleware
+		router.Use(func(c *gin.Context) {
+			lang := c.GetHeader("Accept-Language")
+			if lang == "" {
+				lang = "en"
+			}
+			c.Set(string(contextkeys.RespLang), lang)
+		})
 		router.POST("/compare", handler.CompareProducts)
 
 		productsToCompare := []*domain.Product{
@@ -74,6 +92,7 @@ func TestCompareProducts(t *testing.T) {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest(http.MethodPost, "/compare", bytes.NewBuffer(requestBody))
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept-Language", "en")
 		router.ServeHTTP(w, req)
 
 		// Assert
@@ -84,7 +103,7 @@ func TestCompareProducts(t *testing.T) {
 
 		errorData := responseBody["error"].(map[string]interface{})
 		assert.Equal(t, "INVALID_INPUT", errorData["code"])
-		assert.Contains(t, errorData["message"], "must contain a 'products' array with 2 to 4")
+		assert.Contains(t, errorData["message"], "Request body must contain a 'products' array with 2 to 4 product objects")
 
 		// The use case should never be called
 		mockUseCase.AssertNotCalled(t, "Execute")
@@ -96,14 +115,21 @@ func TestCompareProducts(t *testing.T) {
 		handler := NewCompareHandler(mockUseCase)
 
 		router := gin.Default()
+		// Add context keys middleware
+		router.Use(func(c *gin.Context) {
+			lang := c.GetHeader("Accept-Language")
+			if lang == "" {
+				lang = "en"
+			}
+			c.Set(string(contextkeys.RespLang), lang)
+		})
 		router.POST("/compare", handler.CompareProducts)
-
-		invalidRequestBody := []byte(`{"products": [,]}`)
 
 		// Act
 		w := httptest.NewRecorder()
-		req, _ := http.NewRequest(http.MethodPost, "/compare", bytes.NewBuffer(invalidRequestBody))
+		req, _ := http.NewRequest(http.MethodPost, "/compare", bytes.NewBufferString("{\"invalid\":\"json\"}"))
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept-Language", "en")
 		router.ServeHTTP(w, req)
 
 		// Assert
