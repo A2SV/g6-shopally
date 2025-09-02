@@ -7,16 +7,16 @@ import (
 
     "github.com/gin-gonic/gin"
     "github.com/shopally-ai/pkg/domain"
-    "github.com/shopally-ai/pkg/usecase"
+    "github.com/shopally-ai/pkg/util"
 )
 
 // PriceHandler exposes endpoints around product pricing.
 type PriceHandler struct {
-    svc *usecase.PriceService
+    svc *util.PriceService
 }
 
 // NewPriceHandler creates a new PriceHandler.
-func NewPriceHandler(svc *usecase.PriceService) *PriceHandler {
+func NewPriceHandler(svc *util.PriceService) *PriceHandler {
     return &PriceHandler{svc: svc}
 }
 
@@ -51,15 +51,15 @@ func (h *PriceHandler) GetPrice(c *gin.Context) {
         if (updated - current) > eps || (current-updated) > eps {
             changed = true
         }
-        c.JSON(http.StatusOK, gin.H{"data": gin.H{"updated": updated, "changed": changed, "product": p}})
+    c.JSON(http.StatusOK, gin.H{"data": gin.H{"updated_price": updated, "changed": changed, "product": p}})
         return
     }
 
-    updated, changed, prod, err := h.svc.UpdatePriceIfChanged(c.Request.Context(), id, current)
+    updated, changed, err := h.svc.UpdatePriceIfChanged(c.Request.Context(), id, current)
     if err != nil {
         c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
         return
     }
 
-    c.JSON(http.StatusOK, gin.H{"data": gin.H{"updated": updated, "changed": changed, "product": prod}})
+    c.JSON(http.StatusOK, gin.H{"data": gin.H{"updated_price": updated, "changed": changed}})
 }

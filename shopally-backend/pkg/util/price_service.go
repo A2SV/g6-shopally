@@ -1,4 +1,4 @@
-package usecase
+package util
 
 import (
     "context"
@@ -26,11 +26,14 @@ func New(ag domain.AlibabaGateway) *PriceService {
 // updated price and changed=true. If the product does not exist or the upstream
 // call fails, an error is returned.
 //
-// Returned values: (updatedPrice, changed, productPointer, error)
-func (s *PriceService) UpdatePriceIfChanged(ctx context.Context, productID string, currentUSD float64) (float64, bool, *domain.Product, error) {
+// Returned values: (updatedPrice, changed, error)
+// Note: this function intentionally does not persist or cache results — it
+// performs a lookup and returns the numeric USD price plus a boolean that
+// indicates whether the price differs from `currentUSD`.
+func (s *PriceService) UpdatePriceIfChanged(ctx context.Context, productID string, currentUSD float64) (float64, bool, error) {
     productID = strings.TrimSpace(productID)
     if productID == "" {
-        return 0, false, nil, fmt.Errorf("product id is empty")
+    return 0, false, fmt.Errorf("product id is empty")
     }
 
     // Request a single product by id
@@ -42,10 +45,10 @@ func (s *PriceService) UpdatePriceIfChanged(ctx context.Context, productID strin
 
     products, err := s.ag.FetchProducts(ctx, "", filters)
     if err != nil {
-        return 0, false, nil, fmt.Errorf("aliexpress fetch error: %w", err)
+        return 0, false, fmt.Errorf("aliexpress fetch error: %w", err)
     }
     if len(products) == 0 {
-        return 0, false, nil, fmt.Errorf("product %s not found on AliExpress", productID)
+        return 0, false, fmt.Errorf("product %s not found on AliExpress", productID)
     }
 
     p := products[0]
@@ -54,7 +57,7 @@ func (s *PriceService) UpdatePriceIfChanged(ctx context.Context, productID strin
     // Small epsilon to avoid floating point noise
     const eps = 1e-6
     if math.Abs(updated-currentUSD) > eps {
-        return updated, true, p, nil
+        return updated, true, nil
     }
-    return updated, false, p, nil
+    return updated, false, nil
 }
