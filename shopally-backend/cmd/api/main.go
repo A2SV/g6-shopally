@@ -15,6 +15,7 @@ import (
 	"github.com/shopally-ai/internal/platform"
 	"github.com/shopally-ai/pkg/domain"
 	"github.com/shopally-ai/pkg/usecase"
+	"github.com/shopally-ai/pkg/util"
 )
 
 func main() {
@@ -90,8 +91,12 @@ func main() {
 	alertHandler := handler.NewAlertHandler(alertMgr)
 	compareHandler := handler.NewCompareHandler(usecase.NewCompareProductsUseCase(lg))
 
+	// Price service & handler
+	priceSvc := util.New(ag)
+	priceHandler := handler.NewPriceHandler(priceSvc)
+
 	// Initialize router
-	router := router.SetupRouter(cfg, limiter, searchHandler, compareHandler, alertHandler)
+	router := router.SetupRouter(cfg, limiter, searchHandler, compareHandler, alertHandler, priceHandler)
 
 	// Start the server
 	log.Println("Starting server on port", cfg.Server.Port)
