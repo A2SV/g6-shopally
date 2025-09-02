@@ -42,7 +42,7 @@ export interface Product {
 export interface ProductResponse {
   data: {
     products: Product[];
-  };
+  } | null;
   error: string | null;
 }
 

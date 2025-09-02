@@ -1,3 +1,4 @@
+//src/types/Compare/Comparisons.ts
 export interface ComparisonResponse {
   data: {
     comparison: ComparisonItem[];

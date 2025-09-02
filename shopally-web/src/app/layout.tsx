@@ -1,5 +1,6 @@
 //src/app/layout.tsx
 import AuthProvider from "@/providers/AuthProvider";
+import ReduxProvider from "@/providers/ReduxProvider";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Header from "./components/NavBars/Header";
@@ -31,8 +32,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-brand-white dark:bg-brand-dark text-brand-dark dark:text-brand-white transition-colors duration-200`}
       >
         <AuthProvider>
-          <Header />
-          {children}
+          <ReduxProvider>
+            <Header />
+            {children}
+          </ReduxProvider>
         </AuthProvider>
       </body>
     </html>
