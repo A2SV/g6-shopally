@@ -6,6 +6,11 @@ import 'package:shopallymobile/auth_feature/data/datasource/remotedatasource.dar
 import 'package:shopallymobile/auth_feature/data/repositoryImpl/repositoryImpl.dart';
 import 'package:shopallymobile/auth_feature/domain/repositories/user_repo.dart';
 import 'package:shopallymobile/auth_feature/presentation/pages/profilepage.dart';
+import 'package:shopallymobile/core/localization/language_bloc.dart';
+import 'package:shopallymobile/core/localization/language_event.dart';
+import 'package:shopallymobile/core/localization/language_state.dart';
+import 'package:shopallymobile/core/localization/localization_store.dart';
+import 'package:shopallymobile/core/localization/translation_loader.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +26,16 @@ Future<void> main() async {
       providers: [
         RepositoryProvider<UserRepository>.value(value: userFeatureRepository),
       ],
-      child: const MyApp(),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<LanguageBloc>(
+            create: (_) =>
+                LanguageBloc(TranslationLoader())
+                  ..add(LoadLanguageEvent(initialCode: null)),
+          ),
+        ],
+        child: const MyApp(),
+      )
     ),
   );
 }
@@ -29,15 +43,19 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: ProfilePage(userRepository: context.read<UserRepository>()),
+    return BlocBuilder<LanguageBloc, LanguageState>(
+      builder: (context, state) {
+        if (state is LanguageLoaded) {
+          localizationStore.update(state.dict);
+        }
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: ProfilePage(userRepository: context.read<UserRepository>()),
+        );
+      },
     );
   }
 }

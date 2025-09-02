@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-Widget SettingsRow({
+Widget settingsRow({
   required String title,
   String? trailingText,
   VoidCallback? onTap,
@@ -253,8 +253,44 @@ Widget PickerSheet({
 }
 
 
+BoxDecoration cardDecoration() {
+  return BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    boxShadow: const [
+      BoxShadow(color: Color(0x11000000), blurRadius: 8, offset: Offset(0, 2)),
+    ],
+  );
+}
 
 
+
+Widget avatar({
+  required String? name,
+  required String? photoUrl,
+  required String fallbackInitial,
+}) {
+  if (photoUrl != null && photoUrl.isNotEmpty) {
+    return CircleAvatar(radius: 48, backgroundImage: NetworkImage(photoUrl));
+  }
+
+  final initial = (name != null && name.isNotEmpty)
+      ? name.trim().substring(0, 1).toUpperCase()
+      : fallbackInitial;
+
+  return CircleAvatar(
+    radius: 48,
+    backgroundColor: const Color(0xFF27C08A),
+    child: Text(
+      initial,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
+}
 
 
 Future<bool?> showSignOutDialog(BuildContext context) {
