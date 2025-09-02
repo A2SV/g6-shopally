@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,18 +19,27 @@ type RateLimiter struct {
 	Window      time.Duration // time window
 }
 
-func NewRateLimiter(redisAddr string, limit int, window time.Duration) *RateLimiter {
-	rdb := redis.NewClient(&redis.Options{
-		Addr: redisAddr,
-	})
+func NewRateLimiter(redisAddr, redisPassword string, limit int, window time.Duration, useTLS bool) *RateLimiter {
+	options := &redis.Options{
+		Addr:     redisAddr,
+		Password: redisPassword, // Add password authentication
+	}
+
+	// For Redis Cloud, TLS is usually required
+	if useTLS {
+		options.TLSConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
+	}
+
+	rdb := redis.NewClient(options)
 
 	return &RateLimiter{
 		RedisClient: rdb,
-		Limit:       int(limit),
+		Limit:       limit,
 		Window:      window,
 	}
 }
-
 func (rl *RateLimiter) Middleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := context.Background()
@@ -55,6 +65,7 @@ func (rl *RateLimiter) Middleware() gin.HandlerFunc {
 		// Increment counter
 		count, err := rl.RedisClient.Incr(ctx, key).Result()
 		if err != nil {
+			log.Printf("failed to increment rate limit for %s: %v", key, err)
 			c.JSON(
 				http.StatusInternalServerError,
 				domain.Response{

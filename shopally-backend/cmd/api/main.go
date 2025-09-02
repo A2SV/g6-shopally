@@ -54,8 +54,10 @@ func main() {
 
 	limiter := middleware.NewRateLimiter(
 		cfg.Redis.Host+":"+cfg.Redis.Port,
+		cfg.Redis.Password, // Add password
 		cfg.RateLimit.Limit,
 		time.Duration(cfg.RateLimit.Window)*time.Second,
+		false, // Add TLS flag
 	)
 
 	// FX client (provider defaults to exchangerate.host if not configured)
