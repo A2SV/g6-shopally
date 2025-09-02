@@ -1,6 +1,6 @@
 import 'package:shopallymobile/auth_feature/domain/repositories/user_repo.dart';
 
-class Signout{
+class Signout {
   final UserRepository userRepository;
 
   Signout(this.userRepository);

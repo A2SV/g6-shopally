@@ -30,7 +30,7 @@ class LanguageBloc extends Bloc<LanguageEvent, LanguageState> {
   Future<void> _onSet(
     SetLanguageEvent event,
     Emitter<LanguageState> emit,
-  ) async {    
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('lang_code', event.code);

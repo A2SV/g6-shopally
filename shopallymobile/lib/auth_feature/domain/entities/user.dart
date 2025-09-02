@@ -5,15 +5,13 @@ class AuthUser {
   String? language;
   String? currency;
   bool? notifications;
-  
 
-   AuthUser({
+  AuthUser({
     required this.name,
     required this.email,
     this.photourl,
     this.language,
     this.currency,
     this.notifications,
-  
   });
 }

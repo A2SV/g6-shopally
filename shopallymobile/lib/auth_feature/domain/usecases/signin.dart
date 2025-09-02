@@ -1,4 +1,3 @@
-
 import 'package:shopallymobile/auth_feature/domain/entities/user.dart';
 import 'package:shopallymobile/auth_feature/domain/repositories/user_repo.dart';
 

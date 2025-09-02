@@ -34,7 +34,7 @@ Future<void> showSocialLoginBottomSheet(
     context: context,
     backgroundColor: Colors.white,
     isScrollControlled: true,
-  
+
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
@@ -61,7 +61,7 @@ Future<void> showSocialLoginBottomSheet(
                       ),
                     ),
                   ),
-                  SizedBox(height: 40,) ,
+                  SizedBox(height: 40),
                   const Text(
                     "Social Login",
                     textAlign: TextAlign.center,
@@ -82,7 +82,10 @@ Future<void> showSocialLoginBottomSheet(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 18,
+                        horizontal: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                         side: const BorderSide(color: Color(0x11000000)),
@@ -118,7 +121,10 @@ Future<void> showSocialLoginBottomSheet(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 18,
+                        horizontal: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                         side: const BorderSide(color: Color(0x11000000)),
@@ -252,7 +258,6 @@ Widget PickerSheet({
   );
 }
 
-
 BoxDecoration cardDecoration() {
   return BoxDecoration(
     color: Colors.white,
@@ -262,8 +267,6 @@ BoxDecoration cardDecoration() {
     ],
   );
 }
-
-
 
 Widget avatar({
   required String? name,
@@ -292,10 +295,8 @@ Widget avatar({
   );
 }
 
-
 Future<bool?> showSignOutDialog(BuildContext context) {
   return showDialog<bool>(
-    
     context: context,
     builder: (ctx) {
       return AlertDialog(
@@ -324,7 +325,7 @@ Future<bool?> showSignOutDialog(BuildContext context) {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel' , style: TextStyle(color: Colors.black)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.black)),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -342,14 +343,6 @@ Future<bool?> showSignOutDialog(BuildContext context) {
     },
   );
 }
-
-
-
-
-
-
-
-
 
 Widget socialLoginDialog(
   BuildContext context, {

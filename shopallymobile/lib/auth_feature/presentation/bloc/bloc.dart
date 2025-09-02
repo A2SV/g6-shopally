@@ -35,33 +35,30 @@ class UserAuthBloc extends Bloc<UserAuthEvent, UserAuthState> {
       }
     });
 
-     on<UpdateLanguageEvent>((event, emit) async {
+    on<UpdateLanguageEvent>((event, emit) async {
       emit(InitialState());
-      try{
+      try {
         final user = await userRepositories.updateLanguage(event.language);
         emit(SuccessState(user: user));
-      }
-      catch(e){
+      } catch (e) {
         emit(ErrorState(message: e.toString()));
       }
     });
     on<UpdateCurrencyEvent>((event, emit) async {
       emit(InitialState());
-      try{
+      try {
         final user = await userRepositories.updateCurrency(event.currency);
         emit(SuccessState(user: user));
-      }
-      catch(e){
+      } catch (e) {
         emit(ErrorState(message: e.toString()));
       }
     });
     on<UpdateNotificationEvent>((event, emit) async {
       emit(InitialState());
-      try{
+      try {
         final user = await userRepositories.updateNotification(event.toggle);
         emit(SuccessState(user: user));
-      }
-      catch(e){
+      } catch (e) {
         emit(ErrorState(message: e.toString()));
       }
     });

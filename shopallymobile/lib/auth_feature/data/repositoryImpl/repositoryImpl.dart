@@ -44,7 +44,7 @@ class UserAuthRepositoryImpl implements UserRepository {
   }
 
   @override
-  Future<AuthUser?> updateNotification(bool toggle) async{
+  Future<AuthUser?> updateNotification(bool toggle) async {
     final user = await localDataSource.updateNotification(toggle);
     return user;
   }

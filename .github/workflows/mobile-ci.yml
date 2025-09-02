@@ -40,41 +40,24 @@ jobs:
       - name: ✅ 1. Checkout Repository
         uses: actions/checkout@v4
 
-      # Step 2: Set up Flutter
-      - name: ⚙️ 2. Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: 'stable'
-          cache: true
+      # Step 2: Skip Flutter setup (uses local runner version)
 
       # Step 3: Get Flutter dependencies
-      - name: 📦 3. Install Dependencies
+      - name: 📦 2. Install Dependencies
         run: flutter pub get
 
       # Step 4: Run unit tests
-      - name: 🧪 4. Run Tests
+      - name: 🧪 3. Run Tests
         run: flutter test --coverage
 
       # Step 5: Check code formatting
-      - name: 🎨 5. Check Code Formatting
+      - name: 🎨 4. Check Code Formatting
         run: |
-          if [[ -n $(flutter format --set-exit-if-changed .) ]]; then
+          if [[ -n $(dart format --set-exit-if-changed .) ]]; then
             echo "Some files are not formatted correctly."
             exit 1
           fi
 
       # Step 6: Build the app (APK)
-      - name: 📱 6. Build APK
+      - name: 📱 5. Build APK
         run: flutter build apk --release
-
-      # Optional: Build iOS app (if macOS runner)
-      # - name: 📱 7. Build iOS
-      #   runs-on: macos-latest
-      #   run: flutter build ios --release
-
-      # Optional: Upload artifacts (APK/coverage)
-      # - name: 📤 8. Upload Artifacts
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: build-apk
-      #     path: build/app/outputs/flutter-apk/app-release.apk
