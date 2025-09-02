@@ -64,6 +64,8 @@ func main() {
 	// Wrap with Redis cache if available
 	if rdb != nil {
 		redisCache := gateway.NewRedisCache(rdb.Client, "sa:")
+		// Register cache with fxutil so USD->ETB conversions can read the FX rate
+		util.SetFXCache(redisCache)
 		fxClient = gateway.NewCachedFXClient(fxInner, redisCache, 12*time.Hour)
 	}
 

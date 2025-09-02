@@ -117,7 +117,6 @@ PRODUCTS DATA:
 
 	// Call LLM
 	text, err := g.call(ctx, prompt)
-	log.Println("LLM raw comparison response:", text)
 	log.Println("LLM comparison error:", err)
 
 	if err != nil {
@@ -136,8 +135,6 @@ PRODUCTS DATA:
 	if len(result.Products) != len(productDetails) {
 		return nil, fmt.Errorf("LLM returned %d comparisons but expected %d", len(result.Products), len(productDetails))
 	}
-
-	log.Printf("LLM comparison result: %+v", result)
 
 	return &result, nil
 }
@@ -178,9 +175,6 @@ func (g *GeminiLLMGateway) call(ctx context.Context, prompt string) (string, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := g.client.Do(req)
-
-	log.Println("[GeminiLLMGateway] Request to Gemini API:", prompt)
-	log.Println("[GeminiLLMGateway] Response from Gemini API:", resp)
 
 	if err != nil {
 		return "", err
@@ -474,7 +468,6 @@ func (g *GeminiLLMGateway) SummarizeProduct(ctx context.Context, p *domain.Produ
 
 	// Generate enhanced content in the appropriate language
 	enhancedProduct, err := g.enhanceProductContent(ctx, p, userPrompt, lang, aiMatchPercentage)
-	log.Println("Enhanced product:", enhancedProduct)
 	log.Println("Enhancement error:", err)
 	if err != nil {
 		// If enhancement fails, return the original product with basic enhancements
