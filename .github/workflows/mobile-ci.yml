@@ -58,10 +58,17 @@ jobs:
       # Step 5: Check code formatting
       - name: 🎨 5. Check Code Formatting
         run: |
-          if [ -n "$(dart format --set-exit-if-changed .)" ]; then
-            echo "Some files are not formatted correctly."
+          echo "Checking Dart code formatting..."
+          # Check if any files need formatting
+          FORMAT_OUTPUT=$(dart format --set-exit-if-changed .)
+          if [ -n "$FORMAT_OUTPUT" ]; then
+            echo "Some files are not formatted correctly:"
+            echo "$FORMAT_OUTPUT"
             exit 1
+          else
+            echo "All files are properly formatted."
           fi
+
 
 
       # Step 6: Build the app (APK)
