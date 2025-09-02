@@ -58,10 +58,11 @@ jobs:
       # Step 5: Check code formatting
       - name: 🎨 5. Check Code Formatting
         run: |
-          if [[ -n $(dart format --set-exit-if-changed .) ]]; then
+          if [ -n "$(dart format --set-exit-if-changed .)" ]; then
             echo "Some files are not formatted correctly."
             exit 1
           fi
+
 
       # Step 6: Build the app (APK)
       - name: 📱 6. Build APK
