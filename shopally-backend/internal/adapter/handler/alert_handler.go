@@ -32,6 +32,7 @@ type successResponse struct {
 type createAlertPayload struct {
 	ProductID    string  `json:"productId"`
 	DeviceID     string  `json:"deviceId"`
+	ProductTitle string  `json:"productTitle"`
 	CurrentPrice float64 `json:"currentPrice"`
 }
 
@@ -46,6 +47,7 @@ func (h *AlertHandler) CreateAlertHandler(c *gin.Context) {
 	newAlert := &domain.Alert{
 		ProductID:    payload.ProductID,
 		DeviceID:     payload.DeviceID,
+		ProductTitle: payload.ProductTitle,
 		CurrentPrice: payload.CurrentPrice,
 		IsActive:     true,
 	}

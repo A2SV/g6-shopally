@@ -150,6 +150,77 @@ func MapAliExpressResponseToProducts(data []byte) ([]*domain.Product, error) {
 	}
 }
 
+// MapAliExpressDetailResponseToProducts handles the response from aliexpress.affiliate.productdetail.get
+func MapAliExpressDetailResponseToProducts(data []byte) ([]*domain.Product, error) {
+	type aliProduct struct {
+		AppSalePrice               string `json:"app_sale_price"`
+		OriginalPrice              string `json:"original_price"`
+		ProductDetailURL           string `json:"product_detail_url"`
+		Discount                   string `json:"discount"`
+		ProductMainImageURL        string `json:"product_main_image_url"`
+		TaxRate                    string `json:"tax_rate"`
+		ProductID                  int64  `json:"product_id"`
+		ShipToDays                 string `json:"ship_to_days"`
+		EvaluateRate               string `json:"evaluate_rate"`
+		SalePrice                  string `json:"sale_price"`
+		ProductTitle               string `json:"product_title"`
+		TargetSalePrice            string `json:"target_sale_price"`
+		TargetAppSalePrice         string `json:"target_app_sale_price"`
+		ShopName                   string `json:"shop_name"`
+		TargetSalePriceCurrency    string `json:"target_sale_price_currency"`
+		TargetAppSalePriceCurrency string `json:"target_app_sale_price_currency"`
+		LastestVolume              int    `json:"lastest_volume"`
+	}
+
+	type detailResp struct {
+		Detail struct {
+			RespResult struct {
+				Result struct {
+					Products struct {
+						Product []aliProduct `json:"product"`
+					} `json:"products"`
+				} `json:"result"`
+			} `json:"resp_result"`
+		} `json:"aliexpress_affiliate_productdetail_get_response"`
+	}
+
+	var dr detailResp
+	if err := json.Unmarshal(data, &dr); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal productdetail response: %w", err)
+	}
+	prods := dr.Detail.RespResult.Result.Products.Product
+	out := make([]*domain.Product, 0, len(prods))
+	for _, p := range prods {
+		usd := parseFloatOrZero(p.TargetSalePrice)
+		if usd == 0 {
+			usd = parseFloatOrZero(p.TargetAppSalePrice)
+		}
+		if usd == 0 {
+			usd = parseFloatOrZero(p.SalePrice)
+			if usd == 0 {
+				usd = parseFloatOrZero(p.AppSalePrice)
+			}
+		}
+		etb, _, err := util.USDToETB(usd)
+		if err != nil {
+			etb = 0
+		}
+		prod := &domain.Product{
+			ID:               strconv.FormatInt(p.ProductID, 10),
+			Title:            strings.TrimSpace(p.ProductTitle),
+			ImageURL:         strings.TrimSpace(p.ProductMainImageURL),
+			Price:            domain.Price{USD: usd, ETB: etb, FXTimestamp: time.Now().UTC()},
+			DeeplinkURL:      strings.TrimSpace(p.ProductDetailURL),
+			NumberSold:       p.LastestVolume,
+			Discount:         parsePercentOrZero(p.Discount),
+			ProductRating:    parsePercentOrZero(p.EvaluateRate),
+			DeliveryEstimate: strings.TrimSpace(p.ShipToDays),
+		}
+		out = append(out, prod)
+	}
+	return out, nil
+}
+
 func parseFloatOrZero(s string) float64 {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -312,6 +383,27 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, Keywords string,
 	setStringParam("ship_to_country")
 	setNumberParam("delivery_days")
 
+	// If requesting specific product IDs, switch to productdetail.get
+	requestingDetails := false
+	if v, ok := params["product_ids"]; ok && v != "" {
+		requestingDetails = true
+	}
+	if v, ok := params["product_id"]; ok && v != "" {
+		requestingDetails = true
+	}
+	if requestingDetails {
+		params["method"] = "aliexpress.affiliate.productdetail.get"
+		// 'keywords' not needed for detail
+		params["keywords"] = ""
+		// Some API variants expect product_ids (comma-separated) even for a single id.
+		// If only product_id is provided, copy it to product_ids and remove product_id.
+		if params["product_ids"] == "" && params["product_id"] != "" {
+			params["product_ids"] = params["product_id"]
+			delete(params, "product_id")
+		}
+		// Typically detail endpoint ignores paging; keep provided fields list
+	}
+
 	// Log final params for debugging
 	log.Printf("[AlibabaGateway] Final API params: %+v", params)
 
@@ -370,7 +462,16 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, Keywords string,
 		return nil, fmt.Errorf("aliexpress API returned status %d: %s", resp.StatusCode, preview(respBody.Bytes(), 1000))
 	}
 
-	prods, err := MapAliExpressResponseToProducts(respBody.Bytes())
+	var prods []*domain.Product
+	if requestingDetails {
+		prods, err = MapAliExpressDetailResponseToProducts(respBody.Bytes())
+		if err != nil {
+			log.Printf("[AlibabaGateway] mapping error (detail) from real API response: %v. Attempting query mapper as fallback.", err)
+			prods, err = MapAliExpressResponseToProducts(respBody.Bytes())
+		}
+	} else {
+		prods, err = MapAliExpressResponseToProducts(respBody.Bytes())
+	}
 	if err != nil {
 		log.Printf("[AlibabaGateway] mapping error from real API response: %v. Attempting mock fallback for development.", err)
 		return MapAliExpressResponseToProducts([]byte(mockAliExpressResponse))

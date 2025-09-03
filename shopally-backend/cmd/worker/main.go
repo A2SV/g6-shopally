@@ -9,6 +9,11 @@ import (
 	"github.com/shopally-ai/internal/adapter/gateway"
 	"github.com/shopally-ai/internal/config"
 	"github.com/shopally-ai/internal/platform"
+	workerpkg "github.com/shopally-ai/internal/worker"
+	"github.com/shopally-ai/pkg/util"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func main() {
@@ -39,11 +44,6 @@ func main() {
 	}
 
 	warm()
-	ticker := time.NewTicker(30 * time.Minute)
-	defer ticker.Stop()
-	for range ticker.C {
-		warm()
-	}
 
 	ctx := context.Background()
 
@@ -56,6 +56,38 @@ func main() {
 		}
 	}
 
-	// TODO: Pass `fcm` into the alerts worker when B2.4 is ready
+	// Mongo setup for alerts collection
+	mongoClient, err := platform.Connect(cfg.Mongo.URI)
+	if err != nil {
+		log.Fatalf("mongo connect: %v", err)
+	}
+	db := mongoClient.Database(cfg.Mongo.Database)
+	alertsColl := db.Collection(cfg.Mongo.AlertCollection)
 
+	// Ensure an index on IsActive to speed up worker scans
+	_, err = alertsColl.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "IsActive", Value: 1}},
+		Options: options.Index().SetName("idx_isactive"),
+	})
+	if err != nil {
+		log.Printf("create index on alerts.IsActive failed: %v", err)
+	}
+
+	// Alibaba gateway and price service
+	ali := gateway.NewAlibabaHTTPGateway(cfg)
+	priceSvc := util.New(ali)
+
+	// Start alerts worker if FCM is available
+	if fcm != nil {
+		aw := workerpkg.NewAlertsWorker(alertsColl, priceSvc, fcm)
+		// run periodic loop alongside FX warming
+		go aw.Run(ctx)
+	}
+
+	// Keep the process alive: retain FX warm ticker
+	ticker := time.NewTicker(6 * time.Hour)
+	defer ticker.Stop()
+	for range ticker.C {
+		warm()
+	}
 }

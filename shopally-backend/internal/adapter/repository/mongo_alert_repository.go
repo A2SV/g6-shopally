@@ -35,6 +35,7 @@ func (r *MongoAlertRepository) CreateAlert(alert *domain.Alert) error {
 		"ID":           alert.ID,
 		"DeviceID":     alert.DeviceID,
 		"ProductID":    alert.ProductID,
+		"ProductTitle": alert.ProductTitle,
 		"CurrentPrice": alert.CurrentPrice,
 		"IsActive":     alert.IsActive,
 	})
