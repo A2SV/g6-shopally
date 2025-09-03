@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strconv"
 
@@ -66,8 +67,11 @@ type Config struct {
 
 func LoadConfig(path string) (*Config, error) {
 	// Load .env file
-	if err := godotenv.Load(path + "/.env"); err != nil {
-		return nil, err
+	if os.Getenv("ENVIRONMENT") != "production" {
+		if err := godotenv.Load(); err != nil {
+			// Just log the error but don't fail - this is normal on Render
+			log.Println("Note: .env file not found (this is expected in production)")
+		}
 	}
 
 	var cfg Config
