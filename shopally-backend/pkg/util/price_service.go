@@ -37,7 +37,7 @@ func NewWithAli(appKey, appSecret, baseURL string) *PriceService {
 	if strings.TrimSpace(baseURL) == "" {
 		baseURL = "https://api-sg.aliexpress.com/sync"
 	}
-	return &PriceService{poc: &aliPriceFetcher{client: &priceOnlyClient{
+	return &PriceService{poc: &aliPriceFetcher{client: &PriceOnlyClient{
 		appKey:    appKey,
 		appSecret: appSecret,
 		baseURL:   baseURL,
@@ -201,8 +201,8 @@ func (s *PriceService) GetCurrentPricesUSDAndETBBatch(ctx context.Context, produ
 	return out, nil
 }
 
-// priceOnlyClient performs minimal AliExpress calls to get current prices.
-type priceOnlyClient struct {
+// PriceOnlyClient performs minimal AliExpress calls to get current prices.
+type PriceOnlyClient struct {
 	appKey    string
 	appSecret string
 	baseURL   string
@@ -211,7 +211,7 @@ type priceOnlyClient struct {
 
 type pricePair struct{ USD, ETB float64 }
 
-func (c *priceOnlyClient) fetchPrices(ctx context.Context, productIDs []string) (map[string]pricePair, error) {
+func (c *PriceOnlyClient) fetchPrices(ctx context.Context, productIDs []string) (map[string]pricePair, error) {
 	// Build params
 	ts := time.Now().UTC().UnixNano() / 1e6
 	params := map[string]string{
@@ -325,8 +325,8 @@ type PriceFetcher interface {
 	FetchPrices(ctx context.Context, productIDs []string) (map[string]PriceAmounts, error)
 }
 
-// aliPriceFetcher adapts priceOnlyClient to PriceFetcher.
-type aliPriceFetcher struct{ client *priceOnlyClient }
+// aliPriceFetcher adapts PriceOnlyClient to PriceFetcher.
+type aliPriceFetcher struct{ client *PriceOnlyClient }
 
 func (a *aliPriceFetcher) FetchPrices(ctx context.Context, productIDs []string) (map[string]PriceAmounts, error) {
 	mp, err := a.client.fetchPrices(ctx, productIDs)

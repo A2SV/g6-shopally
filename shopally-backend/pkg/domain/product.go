@@ -43,7 +43,17 @@ type ProductComparison struct {
 	Synthesis Synthesis `json:"synthesis"`
 }
 
-// ComparisonResult holds multiple product comparisons (for side-by-side results).
+// OverallComparison holds summary-level comparison insights.
+type OverallComparison struct {
+	BestValueProduct string   `json:"bestValueProduct"`
+	BestValueLink    string   `json:"bestValueLink"`  // Deeplink for the best product
+	BestValuePrice   Price    `json:"bestValuePrice"` // Price object of the best product
+	KeyHighlights    []string `json:"keyHighlights"`
+	Summary          string   `json:"summary"`
+}
+
+// ComparisonResult holds multiple product comparisons plus overall insights.
 type ComparisonResult struct {
-	Products []ProductComparison `json:"products"`
+	Products          []ProductComparison `json:"products"`
+	OverallComparison OverallComparison   `json:"overallComparison"`
 }

@@ -98,7 +98,7 @@ func main() {
 	compareHandler := handler.NewCompareHandler(usecase.NewCompareProductsUseCase(lg))
 
 	// Price service & handler
-	priceSvc := util.New(ag)
+	priceSvc := util.NewWithAli(cfg.Aliexpress.AppKey, cfg.Aliexpress.AppSecret, cfg.Aliexpress.BaseURL)
 	priceHandler := handler.NewPriceHandler(priceSvc)
 
 	// Initialize router

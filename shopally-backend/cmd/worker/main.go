@@ -73,9 +73,9 @@ func main() {
 		log.Printf("create index on alerts.IsActive failed: %v", err)
 	}
 
-	// Alibaba gateway and price service
-	ali := gateway.NewAlibabaHTTPGateway(cfg)
-	priceSvc := util.New(ali)
+	// Alibaba config and price service (use AliExpress lightweight client)
+	_ = gateway.NewAlibabaHTTPGateway // keep constructed gateway unused; we rely on PriceService fetcher
+	priceSvc := util.NewWithAli(cfg.Aliexpress.AppKey, cfg.Aliexpress.AppSecret, cfg.Aliexpress.BaseURL)
 
 	// Start alerts worker if FCM is available
 	if fcm != nil {

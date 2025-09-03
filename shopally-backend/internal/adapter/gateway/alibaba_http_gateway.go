@@ -26,62 +26,8 @@ import (
 // fields and uses sensible defaults/placeholders where mapping data is not
 // available from the upstream response.
 func MapAliExpressResponseToProducts(data []byte) ([]*domain.Product, error) {
-	type aliProduct struct {
-		AppSalePrice        string `json:"app_sale_price"`
-		OriginalPrice       string `json:"original_price"`
-		ProductDetailURL    string `json:"product_detail_url"`
-		Discount            string `json:"discount"`
-		ProductMainImageURL string `json:"product_main_image_url"`
-		TaxRate             string `json:"tax_rate"`
-		ProductID           int64  `json:"product_id"`
-		ShipToDays          string `json:"ship_to_days"`
-		EvaluateRate        string `json:"evaluate_rate"`
-		SalePrice           string `json:"sale_price"`
-		ProductTitle        string `json:"product_title"`
 
-		TargetSalePrice            string `json:"target_sale_price"`
-		TargetAppSalePrice         string `json:"target_app_sale_price"`
-		ShopName                   string `json:"shop_name"`
-		TargetSalePriceCurrency    string `json:"target_sale_price_currency"`
-		TargetAppSalePriceCurrency string `json:"target_app_sale_price_currency"`
-
-		ProductSmallImageURLs struct {
-			String []string `json:"string"`
-		} `json:"product_small_image_urls"`
-		SecondLevelCategoryName     string `json:"second_level_category_name"`
-		SecondLevelCategoryID       int64  `json:"second_level_category_id"`
-		FirstLevelCategoryID        int64  `json:"first_level_category_id"`
-		FirstLevelCategoryName      string `json:"first_level_category_name"`
-		OriginalPriceCurrency       string `json:"original_price_currency"`
-		ShopURL                     string `json:"shop_url"`
-		TargetOriginalPriceCurrency string `json:"target_original_price_currency"`
-		TargetOriginalPrice         string `json:"target_original_price"`
-		ProductVideoURL             string `json:"product_video_url"`
-		PromotionLink               string `json:"promotion_link"`
-		SKUId                       int64  `json:"sku_id"`
-		HotProductCommissionRate    string `json:"hot_product_commission_rate"`
-		ShopID                      int64  `json:"shop_id"`
-		LastestVolume               int    `json:"lastest_volume"`
-		SalePriceCurrency           string `json:"sale_price_currency"`
-		CommissionRate              string `json:"commission_rate"`
-	}
-
-	type sgResp struct {
-		AliexpressResp struct {
-			RespResult struct {
-				Result struct {
-					CurrentRecordCount int `json:"current_record_count"`
-					TotalRecordCount   int `json:"total_record_count"`
-					CurrentPageNo      int `json:"current_page_no"`
-					Products           struct {
-						Product []aliProduct `json:"product"`
-					} `json:"products"`
-				} `json:"result"`
-			} `json:"resp_result"`
-		} `json:"aliexpress_affiliate_product_query_response"`
-	}
-
-	var sg sgResp
+	var sg domain.SgResp
 	err := json.Unmarshal(data, &sg)
 	if err == nil {
 		log.Printf("[AlibabaGateway] Unmarshal to sgResp succeeded. Raw product count in struct: %d", len(sg.AliexpressResp.RespResult.Result.Products.Product))
@@ -124,17 +70,15 @@ func MapAliExpressResponseToProducts(data []byte) ([]*domain.Product, error) {
 						USD:         usd,
 						FXTimestamp: time.Now().UTC(),
 					},
-					ProductRating:      rating,
-					SellerScore:        0, // Placeholder
-					DeliveryEstimate:   strings.TrimSpace(p.ShipToDays),
-					Description:        "", // Not available in current API response snippet
-					CustomerHighlights: "", // Not available in current API response snippet
-					CustomerReview:     "", // Not available in current API response snippet
-					NumberSold:         p.LastestVolume,
-					SummaryBullets:     []string{},
-					DeeplinkURL:        strings.TrimSpace(p.ProductDetailURL),
-					TaxRate:            tax,
-					Discount:           discount,
+					ProductRating:    rating,
+					SellerScore:      0, // Placeholder
+					DeliveryEstimate: strings.TrimSpace(p.ShipToDays),
+					Description:      "", // Not available in current API response snippet
+					NumberSold:       p.LastestVolume,
+					SummaryBullets:   []string{},
+					DeeplinkURL:      strings.TrimSpace(p.ProductDetailURL),
+					TaxRate:          tax,
+					Discount:         discount,
 				}
 				out = append(out, prod)
 			}
