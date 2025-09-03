@@ -1,4 +1,5 @@
 //src/app/api/alerts/route.ts
+import { getLanguage } from "@/lib/redux/languageBridge";
 import { AlertCreateResponse } from "@/types/SavedItems/AlertCreateResponse";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -21,12 +22,15 @@ export async function POST(
       );
     }
 
+
+    const langCode = getLanguage() || "en-US";
+
     const response = await fetch(`${API_BASE}/api/alerts`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Device-ID": deviceId,
-        "Accept-Language": "en-US", // TODO: make dynamic later
+        "Accept-Language": langCode, // TODO: make dynamic later
       },
       body: JSON.stringify({ productId, deviceId, currentPriceETB }),
     });

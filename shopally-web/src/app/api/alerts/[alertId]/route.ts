@@ -1,4 +1,5 @@
 //src/app/api/alerts/[alertId]/route.ts
+import { getLanguage } from "@/lib/redux/languageBridge";
 import { AlertCreateResponse } from "@/types/SavedItems/AlertCreateResponse";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -21,11 +22,13 @@ export async function DELETE(
       );
     }
 
+    const langCode = getLanguage() || "en-US";
+
     const backendRes = await fetch(`${API_BASE}/api/alerts/${id}`, {
       method: "DELETE",
       headers: {
         "X-Device-ID": deviceId,
-        "Accept-Language": "en-US", // TODO: make dynamic later
+        "Accept-Language": langCode, // TODO: make dynamic later
         "Content-Type": "application/json",
       },
     });

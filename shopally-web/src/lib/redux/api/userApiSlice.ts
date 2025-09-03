@@ -5,10 +5,17 @@ import { AlertDeleteResponse } from "@/types/SavedItems/AlertDeleteResponse";
 import { CreateAlert } from "@/types/SavedItems/SavedItems";
 import { ProductResponse } from "@/types/types";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { getLanguage } from "../languageBridge";
 
 export const userApi = createApi({
   reducerPath: "userApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "/api/" }),
+  baseQuery: fetchBaseQuery({ baseUrl: "/", prepareHeaders: (headers) => {
+      const langCode = getLanguage();
+      if (langCode) {
+        headers.set("Accept-Language", langCode);
+      }
+      return headers;
+    },}),
   endpoints: (builder) => ({
     createAlert: builder.mutation<AlertCreateResponse, CreateAlert>({
       query: (data) => ({
@@ -28,7 +35,7 @@ export const userApi = createApi({
       { query: string; priceMaxETB: number | null; minRating: number | null }
     >({
       query: (data) => ({
-        url: "products/search",
+        url: "/search",
         method: "POST",
         body: data,
       }),
