@@ -71,13 +71,6 @@ type AlertsWorkerSuite struct {
 	price *util.PriceService
 }
 
-// pushMock adapts domain.IPushNotificationGateway using internal mocks FCM-like shape
-type pushMock struct{ mock.Mock }
-
-func (p *pushMock) Send(ctx context.Context, token, title, body string, data map[string]string) (string, error) {
-	args := p.Called(ctx, token, title, body, data)
-	return args.String(0), args.Error(1)
-}
 
 // gateway mock for PriceService
 type priceGW struct{ mock.Mock }
@@ -102,14 +95,6 @@ func (s *AlertsWorkerSuite) SetupTest() {
 func (s *AlertsWorkerSuite) TestTick_HappyPath_PriceDrop() {
 	// Prepare cursor to yield one alert then stop
 	// alert doc expected shape
-	type doc struct {
-		ID           string
-		DeviceID     string
-		ProductID    string
-		ProductTitle string
-		CurrentPrice float64
-		IsActive     bool
-	}
 	first := true
 	s.cur.On("Next", mock.Anything).Return(func(ctx context.Context) bool {
 		if first {
@@ -151,14 +136,6 @@ func (s *AlertsWorkerSuite) TestTick_HappyPath_PriceDrop() {
 
 func (s *AlertsWorkerSuite) TestTick_NoDrop_NoPush_NoUpdate() {
 	// cursor yields one alert
-	type doc struct {
-		ID           string
-		DeviceID     string
-		ProductID    string
-		ProductTitle string
-		CurrentPrice float64
-		IsActive     bool
-	}
 	first := true
 	s.cur.On("Next", mock.Anything).Return(func(ctx context.Context) bool {
 		if first {
