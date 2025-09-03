@@ -37,6 +37,18 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+    namespace = "com.example.shopallymobile"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.example.shopallymobile"
+        minSdk = 21
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    ndkVersion = "27.0.12077973"
 }
 
 flutter {
