@@ -21,7 +21,7 @@ func TestAlertHandlers(t *testing.T) {
 	var alertID string
 
 	t.Run("CreateAlertHandler", func(t *testing.T) {
-		payload := []byte(`{"deviceId": "device-123", "productId": "prod-abc", "currentPrice": 500.00}`)
+		payload := []byte(`{"deviceId": "device-123", "productId": "prod-abc", "productTitle": "Nice Jacket", "currentPrice": 500.00}`)
 		req := httptest.NewRequest("POST", "/alerts", bytes.NewBuffer(payload))
 		req.Header.Set("Content-Type", "application/json")
 		rr := httptest.NewRecorder()
@@ -81,6 +81,9 @@ func TestAlertHandlers(t *testing.T) {
 		}
 		if alertId, ok := alertData["alertId"].(string); !ok || alertId != alertID {
 			t.Errorf("unexpected alertId in response: got %v", alertData["alertId"])
+		}
+		if title, ok := alertData["productTitle"].(string); !ok || title == "" {
+			t.Errorf("expected productTitle in response, got %v", alertData["productTitle"])
 		}
 	})
 

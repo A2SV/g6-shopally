@@ -20,6 +20,7 @@ func (s *AlertRepositorySuite) SetupTest() {
 	s.sampleAlert = &domain.Alert{
 		DeviceID:     "device-123",
 		ProductID:    "product-abc",
+		ProductTitle: "Sample Product",
 		CurrentPrice: 500.00,
 		IsActive:     true,
 	}
@@ -72,6 +73,7 @@ func TestMockAlertRepository(t *testing.T) {
 	sampleAlert := &domain.Alert{
 		DeviceID:     "device-123",
 		ProductID:    "product-abc",
+		ProductTitle: "Sample Product",
 		CurrentPrice: 500.00,
 		IsActive:     true,
 	}
@@ -102,6 +104,9 @@ func TestMockAlertRepository(t *testing.T) {
 
 		if retrievedAlert.DeviceID != sampleAlert.DeviceID {
 			t.Errorf("Retrieved alert DeviceID mismatch: got %s, want %s", retrievedAlert.DeviceID, sampleAlert.DeviceID)
+		}
+		if retrievedAlert.ProductTitle != sampleAlert.ProductTitle {
+			t.Errorf("Retrieved alert ProductTitle mismatch: got %s, want %s", retrievedAlert.ProductTitle, sampleAlert.ProductTitle)
 		}
 	})
 
