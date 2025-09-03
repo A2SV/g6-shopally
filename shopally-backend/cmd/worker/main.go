@@ -11,6 +11,9 @@ import (
 	"github.com/shopally-ai/internal/platform"
 	workerpkg "github.com/shopally-ai/internal/worker"
 	"github.com/shopally-ai/pkg/util"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func main() {
@@ -60,6 +63,15 @@ func main() {
 	}
 	db := mongoClient.Database(cfg.Mongo.Database)
 	alertsColl := db.Collection(cfg.Mongo.AlertCollection)
+
+	// Ensure an index on IsActive to speed up worker scans
+	_, err = alertsColl.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "IsActive", Value: 1}},
+		Options: options.Index().SetName("idx_isactive"),
+	})
+	if err != nil {
+		log.Printf("create index on alerts.IsActive failed: %v", err)
+	}
 
 	// Alibaba gateway and price service
 	ali := gateway.NewAlibabaHTTPGateway(cfg)

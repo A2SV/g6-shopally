@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopally-ai/pkg/util"
@@ -22,14 +21,17 @@ func NewPriceHandler(svc *util.PriceService) *PriceHandler {
 // GET /product/:id/price?current=10.5
 func (h *PriceHandler) GetPrice(c *gin.Context) {
 	id := c.Param("id")
-	currentStr := c.DefaultQuery("current", "0")
-	current, _ := strconv.ParseFloat(currentStr, 64)
 
-	updated, changed, err := h.svc.UpdatePriceIfChanged(c.Request.Context(), id, current)
+	// Get both USD and ETB from the price-only path when available
+	usd, etb, err := h.svc.GetCurrentPriceUSDAndETB(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{"data": gin.H{"updated_price": updated, "changed": changed}})
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{
+		"updated_price_usd": usd,
+		"updated_price_etb": etb,
+	}, "error": gin.H{
+		"error": err,
+	}})
 }

@@ -368,6 +368,19 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, Keywords string,
 		}
 	}
 
+	// Extract special flags
+	priceOnly := false
+	if v, ok := filters["price_only"]; ok {
+		switch b := v.(type) {
+		case bool:
+			priceOnly = b
+		case string:
+			if strings.EqualFold(b, "true") || b == "1" {
+				priceOnly = true
+			}
+		}
+	}
+
 	// Override defaults with values from the filters map
 	setNumberParam("page_no")
 	setNumberParam("page_size")
@@ -403,6 +416,10 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, Keywords string,
 		if params["product_ids"] == "" && params["product_id"] != "" {
 			params["product_ids"] = params["product_id"]
 			delete(params, "product_id")
+		}
+		// If price_only is requested, limit fields to price-related only
+		if priceOnly {
+			params["fields"] = "product_id,target_sale_price"
 		}
 		// Typically detail endpoint ignores paging; keep provided fields list
 	}
