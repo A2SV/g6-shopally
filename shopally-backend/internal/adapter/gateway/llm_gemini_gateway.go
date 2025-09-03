@@ -29,7 +29,7 @@ type GeminiLLMGateway struct {
 // CompareProducts implements domain.LLMGateway.
 // CompareProducts implements domain.LLMGateway.
 func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails []*domain.Product) (*domain.ComparisonResult, error) {
-	if len(productDetails) == 0 {
+	if len(productDetails) < 2 {
 		return nil, fmt.Errorf("at least one product is required")
 	}
 
@@ -42,7 +42,6 @@ func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails [
 		return nil, fmt.Errorf("failed to marshal products: %w", err)
 	}
 
-	// Language detection
 	lang := "en"
 	if v := ctx.Value(contextkeys.RespLang); v != nil {
 		if s, ok := v.(string); ok && s != "" {
