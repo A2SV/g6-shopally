@@ -42,11 +42,9 @@ func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails [
 		return nil, fmt.Errorf("failed to marshal products: %w", err)
 	}
 
-	lang := "en"
-	if v := ctx.Value(contextkeys.RespLang); v != nil {
-		if s, ok := v.(string); ok && s != "" {
-			lang = s
-		}
+	lang, _ := ctx.Value(contextkeys.RespLang).(string)
+	if lang == "" {
+		lang = "en"
 	}
 
 	// Extract delivery info from first product for the prompt
@@ -59,57 +57,89 @@ func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails [
 
 CRITICAL INSTRUCTIONS:
 1. Return STRICT JSON ONLY, no additional text or commentary
-2. JSON structure must be exactly this format:
+2. JSON structure must exactly match the format below
+3. If language is Amharic ("am"), **translate both feature keys and descriptive text to Amharic**
+
 {
   "products": [
     {
-      "product": { /* complete original product object for product 1 */ },
+      "product": { "id":"123", "title":"Sample Product", "imageUrl":"https://example.com/image.jpg", "price":{"etb":1000,"usd":20,"fxTimestamp":"2025-09-03T12:00:00Z"}, "productRating":4.5, "sellerScore":95, "deliveryEstimate":"3-5 days", "description":"Sample description", "summaryBullets":["bullet1","bullet2"], "deeplinkUrl":"https://example.com/product/123", "taxRate":0.1, "discount":10, "numberSold":150, "aiMatchPercentage":0 },
       "synthesis": {
-        "pros": ["advantage 1", "advantage 2", ...],
-        "cons": ["disadvantage 1", "disadvantage 2", ...],
-        "isBestValue": true/false,
+        English (en)
+		"pros": [
+			"Affordable price",
+			"High quality materials",
+			"Fast delivery"
+		],
+		"cons": [
+			"Limited color options"
+		]
+
+		Amharic (am)
+		"pros": [
+			"ተመጣጣኝ ዋጋ",
+			"ከፍተኛ ጥራት ያላቸው ቁሳቁሶች",
+			"ፈጣን እና ታማኝ አሰራር"
+		],
+		"cons": [
+			"የቀለም አማራጮች ገደብ ተደርጓል"
+		]
+        "isBestValue": true,
         "features": {
-          "priceScore": "excellent/good/fair/poor",
-          "qualityScore": "excellent/good/fair/poor",
-          "valueForMoney": "excellent/good/fair/poor",
-          "deliveryRating": "excellent/good/fair/poor"
-        }
-      }
-    },
-    {
-      "product": { /* complete original product object for product 2 */ },
-      "synthesis": {
-        "pros": ["advantage 1", "advantage 2", ...],
-        "cons": ["disadvantage 1", "disadvantage 2", ...],
-        "isBestValue": true/false,
-        "features": {
-          "priceScore": "excellent/good/fair/poor",
-          "qualityScore": "excellent/good/fair/poor",
-          "valueForMoney": "excellent/good/fair/poor",
-          "deliveryRating": "excellent/good/fair/poor"
+          // English keys if lang="en"
+          "Price & Value": "Cheaper than competitors with excellent value",
+          "Quality & Durability": "Solid build with premium materials and long-lasting",
+          "Seller Trust": "Highly rated seller with good reputation",
+          "Delivery Speed": "Faster than most competitors",
+          "Popularity & Demand": "Well-liked with high sales volume",
+          "Unique Features": "Supports wireless charging and extra features",
+
+          // Amharic keys if lang="am"
+          "ዋጋ እና የዋጋ እኩልነት": "ከተወዳጅ ምርቶች በተመጣጣኝ ዋጋ ይገኛል",
+          "ጥራት እና ቆይታ": "ጥሩ እና ረጅም ቆይታ ያለው ጥራት ተሸማች",
+          "የሻጭ እርግጠኝነት": "ከፍተኛ ደረጃ ያለው ታማኝ ሻጭ",
+          "የአሰራር ፍጥነት": "ከአብዛኛዎቹ ምርቶች ፈጣን የማድረስ ጊዜ",
+          "ታዋቂነት እና ጥያቄ": "በከፍተኛ ብዛት የተሸጠ የታወቀ ምርት",
+          "ብቸኛ ስለሆነ ባህሪዎች": "ያለ ግድ የሚከናወን ማስተካከያ ያለው እና ተጨማሪ ባህሪዎች ያሉበት"
         }
       }
     }
-    /* include all %d products in the same format */
-  ]
+    /* repeat above block for all %d products */
+  ],
+  "overallComparison": {
+    "bestValueProduct": "Sample Product",
+    "bestValueLink": "https://example.com/product/123",
+    "bestValuePrice": {
+      "etb": 1000,
+      "usd": 20,
+      "fxTimestamp": "2025-09-03T12:00:00Z"
+    },
+    "keyHighlights": [
+      "Most cost-effective option",
+      "High-quality materials and fast delivery"
+    ],
+    "summary": "Sample Product offers the best value, balancing price, quality, and speed, while competitors may offer slightly better features but at higher costs."
+  }
 }
 
 FEATURE COMPARISON GUIDELINES:
-- For each product, identify features that MAKE IT DIFFERENT from others
-- Highlight what makes ONE PRODUCT BETTER than others in specific areas
-- Focus on COMPETITIVE ADVANTAGES and UNIQUE SELLING POINTS
-- Compare relative strengths and weaknesses across products
+- Compare products relative to each other
+- Highlight strengths, weaknesses, trade-offs, and unique selling points
+- Use descriptive, human-readable phrases
+- Tone: analytical, descriptive, detail-oriented, persuasive
+- If lang='am', feature keys AND values must be in Amharic
 
 SPECIFIC AREAS TO COMPARE:
-1. PRICE: Which offers best value? Consider ETB price, USD price, discounts, tax
-2. QUALITY: Compare product ratings (%v/5 vs others) and customer reviews
-3. SELLER: Compare seller scores (/100) and trust indicators
-4. DELIVERY: Compare delivery estimates ("%s" vs others)
-5. POPULARITY: Compare number sold (%d units) and market acceptance
-6. FEATURES: Compare summary bullets and unique offerings
-
+1. PRICE: ETB, USD, discounts, tax
+2. QUALITY: product ratings (%v/5) and customer reviews
+3. SELLER: seller scores (/100) and trust indicators
+4. DELIVERY: delivery estimates ("%s")
+5. POPULARITY: number sold (%d units)
+6. FEATURES: summary bullets and distinctive advantages
 
 RESPONSE LANGUAGE: %s
+- 'am' → provide all text, including feature keys, in Amharic
+- 'en' → provide all text, including feature keys, in English
 
 PRODUCTS DATA:
 %s`, len(productDetails), len(productDetails), len(productDetails), deliveryInfo, len(productDetails), lang, string(b))
@@ -228,75 +258,88 @@ func (g *GeminiLLMGateway) ParseIntent(ctx context.Context, query string) (map[s
 
 	prompt := fmt.Sprintf(`STRICT INSTRUCTIONS: OUTPUT ONLY RAW JSON, NO OTHER TEXT, NO EXPLANATIONS, NO CODE BLOCKS.
 
-You are an advanced e-commerce search intent parser with expert budget extraction capabilities.
+You are an advanced multi-language e-commerce intent parser. Your task is to normalize user queries into structured JSON for product search.
 
 ## CRITICAL RULES:
-1. OUTPUT ONLY PURE JSON - NO OTHER TEXT WHATSOEVER
-2. EXTRACT AND CONVERT NUMBER WORDS TO DIGITS (e.g., "five hundred" → 500, "ሁለት ሺህ" → 2000)
-3. PRESERVE ORIGINAL CURRENCY VALUES - DO NOT CONVERT CURRENCIES
-4. DETECT BOTH MINIMUM AND MAXIMUM PRICE RANGES
-5. OUTPUT NUMERICAL VALUES EXACTLY AS EXTRACTED
-
-## BUDGET EXTRACTION RULES:
-- Convert number words to digits: "five" → 5, "twenty" → 20, "one hundred" → 100
-- Convert Amharic numbers: "አንድ" → 1, "ሁለት" → 2, "አምስት" → 5, "መቶ" → 100, "ሺህ" → 1000
-- Detect ranges: "between 100 and 200" → min=100, max=200
-- Detect inequalities: "under 500", "less than 1000" → max=500, max=1000
-- Detect inequalities: "over 200", "more than 300" → min=200, min=300
-- Detect approximate: "around 1500", "about 2000" → use as max_sale_price
-- Extract exact numbers: "500 ETB" → preserve as 500, is_etb=true
-
-## CURRENCY HANDLING:
-- PRESERVE ORIGINAL NUMERICAL VALUES - NO CURRENCY CONVERSION
-- If user specifies "ETB", "birr", "ብር" → is_etb = true
-- If user specifies "$", "USD", "dollars" → is_etb = false  
-- If no currency specified → is_etb = true (default to ETB)
-- Output prices as exact numbers without conversion
-
-## LANGUAGE PROCESSING:
-- Extract keywords in English regardless of input language
-- Translate Amharic product names to English (e.g., "ስልክ" → "phone")
-- Convert number words to digits in all languages
-- Understand mixed language queries
+1. OUTPUT ONLY PURE JSON
+2. DETECT CURRENCY MENTIONED IN QUERY:
+   - If query mentions "USD", "$", or "dollars" → set is_etb=false
+   - If query mentions "ETB", "birr", "ብር" or no currency → set is_etb=true
+3. COLLECT ALL TERMS (main product, synonyms, categories, brands, brand codes, gender, usage/function)
+4. STEM WORDS TO BASE FORM (e.g., "running" → "run", "shoes" → "shoe")
+5. TRANSLATE PRODUCT TERMS TO ENGLISH
+6. MERGE EVERYTHING INTO A SINGLE SPACE-SEPARATED STRING → keywords
+7. INCLUDE GENDER (male, female, unisex, kid) IF SPECIFIED
+8. PRESERVE BRAND NAMES AND MODEL NUMBERS (e.g., "Nike AirMax 270" → "nike airmax 270")
+9. CONVERT NUMBER WORDS (English & Amharic) TO DIGITS
+10. PRESERVE ORIGINAL BUDGET PHRASE
 
 ## JSON SCHEMA:
 {
-  "keywords": "string",           // English keywords from any language input
-  "category_ids": "string|null",
-  "min_sale_price": number|null,  // Exact numerical value as mentioned
-  "max_sale_price": number|null,  // Exact numerical value as mentioned  
-  "delivery_days": number|null,
+  "keywords": "string",            // single string, space-separated, stemmed, includes all relevant terms
+  "min_sale_price": number|null,   // budget lower bound
+  "max_sale_price": number|null,   // budget upper bound
+  "original_budget": "string|null",// raw budget phrase
+  "delivery_days": number|null,    // expected delivery time if mentioned
   "ship_to_country": "ET",
   "target_currency": "USD",
   "target_language": "en",
-  "is_etb": boolean,              // Currency context (true=ETB, false=USD)
-  "original_budget": "string|null" // Original budget phrase for reference
+  "is_etb": boolean                // true = ETB, false = USD
 }
 
-## EXAMPLES (User Query -> JSON Output):
+## EXAMPLES:
 
-"smartphone under five hundred birr" -> {"keywords":"smartphone","min_sale_price":null,"max_sale_price":500,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true,"original_budget":"under five hundred birr"}
+"user query: red nike running shoes under 3000 birr" ->
+{
+  "keywords": "red nike run shoe sneaker sport trainer footwear male",
+  "min_sale_price": null,
+  "max_sale_price": 3000,
+  "original_budget": "under 3000 birr",
+  "delivery_days": null,
+  "ship_to_country": "ET",
+  "target_currency": "USD",
+  "target_language": "en",
+  "is_etb": true
+}
 
-"laptop between one thousand and two thousand ETB" -> {"keywords":"laptop","min_sale_price":1000,"max_sale_price":2000,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true,"original_budget":"between one thousand and two thousand ETB"}
+"user query: cheap gaming laptop around one thousand dollars" ->
+{
+  "keywords": "cheap game laptop notebook computer pc electronic",
+  "min_sale_price": null,
+  "max_sale_price": 1000,
+  "original_budget": "around one thousand dollars",
+  "delivery_days": null,
+  "ship_to_country": "ET",
+  "target_currency": "USD",
+  "target_language": "en",
+  "is_etb": false
+}
 
-"watch over two hundred dollars" -> {"keywords":"watch","min_sale_price":200,"max_sale_price":null,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":false,"original_budget":"over two hundred dollars"}
+"user query: ነጭ ቀሚስ የወንድ ከአምስት መቶ ብር በታች" ->
+{
+  "keywords": "white shirt men male clothing apparel fashion",
+  "min_sale_price": null,
+  "max_sale_price": 500,
+  "original_budget": "ከአምስት መቶ ብር በታች",
+  "delivery_days": null,
+  "ship_to_country": "ET",
+  "target_currency": "USD",
+  "target_language": "en",
+  "is_etb": true
+}
 
-"ስልክ ከአምስት መቶ እስከ ሺህ ብር" -> {"keywords":"phone","min_sale_price":500,"max_sale_price":1000,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true,"original_budget":"ከአምስት መቶ እስከ ሺህ ብር"}
-
-"computer around one thousand five hundred" -> {"keywords":"computer","min_sale_price":null,"max_sale_price":1500,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true,"original_budget":"around one thousand five hundred"}
-
-"expensive shoes under ሁለት ሺህ ብር" -> {"keywords":"shoes","min_sale_price":null,"max_sale_price":2000,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true,"original_budget":"under ሁለት ሺህ ብር"}
-
-"ተንሸራታች ከአምስት ሺህ ብር በላይ" -> {"keywords":"sneakers","min_sale_price":5000,"max_sale_price":null,"category_ids":null,"delivery_days":null,"ship_to_country":"ET","target_currency":"USD","target_language":"en","is_etb":true,"original_budget":"ከአምስት ሺህ ብር በላይ"}
-
-## NUMBER WORD CONVERSION REFERENCE:
-English: one=1, two=2, three=3, four=4, five=5, six=6, seven=7, eight=8, nine=9, ten=10,
-         twenty=20, thirty=30, forty=40, fifty=50, sixty=60, seventy=70, eighty=80, ninety=90,
-         hundred=100, thousand=1000, million=1000000
-
-Amharic: አንድ=1, ሁለት=2, ሦስት=3, አራት=4, አምስት=5, ስድስት=6, ሰባት=7, ስምንት=8, ዘጠኝ=9, አስር=10,
-         ሃያ=20, ሰላሳ=30, አርባ=40, አምሳ=50, ስልሳ=60, ሰባ=70, ሰማንያ=80, ዘጠና=90,
-         መቶ=100, ሺህ=1000, ሚሊዮን=1000000
+"user query: samsung galaxy s23 ultra phone under 700 dollars" ->
+{
+  "keywords": "samsung galaxy s23 ultra phone smartphone mobile",
+  "min_sale_price": null,
+  "max_sale_price": 700,
+  "original_budget": "under 700 dollars",
+  "delivery_days": null,
+  "ship_to_country": "ET",
+  "target_currency": "USD",
+  "target_language": "en",
+  "is_etb": false
+}
 
 INPUT QUERY: "%s"
 OUTPUT:`, normalizedQuery)
@@ -462,54 +505,67 @@ func (g *GeminiLLMGateway) SummarizeProduct(ctx context.Context, p *domain.Produ
 		lang = "en"
 	}
 
-	// Calculate AI match percentage based on product relevance to user's original query
-	aiMatchPercentage := calculateAIMatchPercentage(p, userPrompt)
-
 	// Generate enhanced content in the appropriate language
-	enhancedProduct, err := g.enhanceProductContent(ctx, p, userPrompt, lang, aiMatchPercentage)
+	enhancedProduct, err := g.enhanceProductContent(ctx, p, userPrompt, lang)
 	log.Println("Enhancement error:", err)
 	if err != nil {
 		// If enhancement fails, return the original product with basic enhancements
 		log.Printf("Product enhancement failed, returning original product: %v", err)
-		return g.createBasicEnhancedProduct(p, userPrompt, lang, aiMatchPercentage), nil
+		return g.createBasicEnhancedProduct(p, userPrompt, lang), nil
 	}
 
 	return enhancedProduct, nil
 }
 
-func (g *GeminiLLMGateway) enhanceProductContent(ctx context.Context, p *domain.Product, userPrompt, lang string, aiMatchPercentage int) (*domain.Product, error) {
+func (g *GeminiLLMGateway) enhanceProductContent(ctx context.Context, p *domain.Product, userPrompt, lang string) (*domain.Product, error) {
 	prompt := fmt.Sprintf(`STRICT INSTRUCTIONS: OUTPUT ONLY RAW JSON, NO OTHER TEXT, NO EXPLANATIONS, NO CODE BLOCKS.
 
-You are an expert e-commerce product content enhancer. Return the COMPLETE product JSON structure with enhanced text content.
+You are an expert e-commerce product content enhancer and product relevance evaluator. Enhance the product text content and generate an AI-based match percentage.
 
 ## USER'S ORIGINAL REQUEST: "%s"
 
 ## LANGUAGE: %s
-- Write ALL text fields in %s language
-- Use appropriate cultural context
+- Enhance all text fields in %s
+- Use culturally appropriate, persuasive, and engaging language
 
-## RULES:
-- Output the EXACT product JSON structure
-- Enhance text fields to be more engaging and persuasive
-- Keep ALL original field names, values, and structure
-- Only modify: description, customerHighlights, customerReview, summaryBullets
-- All other fields must remain EXACTLY the same
-- Numerical values, URLs, IDs must not change
-
-## ORIGINAL PRODUCT DATA:
+## PRODUCT DATA:
 %s
 
-## ENHANCEMENT GUIDELINES FOR %s:
-1. description: Make comprehensive yet engaging (3-4 sentences)
-2. customerHighlights: Make more compelling and benefit-focused
-3. customerReview: Make more natural and persuasive
-4. summaryBullets: Create 3-5 bullet points with ejection-style formatting
-5. title: Keep meaning but make more appealing if needed
+## TASK:
+1. Enhance the following product fields:
+   - title
+   - description
+   - summaryBullets
+2. Generate a new field: aiMatchPercentage
+   - A number from 0 to 100
+   - Represents how well this product matches the user's prompt based on product details, features, quality, and relevance
+   - Higher values indicate better match
+3. Do NOT modify any other fields
+4. Ensure all numerical values, URLs, IDs remain unchanged
+5. Generate 3-5 short, punchy **summaryBullets** highlighting key benefits, features, and unique selling points
+6. Output **ONLY JSON**, strictly following the format below
 
-## REQUIRED OUTPUT:
-The complete product JSON with enhanced text fields in %s language.
+## REQUIRED OUTPUT JSON FORMAT:
+{
+  "title": "string",
+  "description": "string",
+  "summaryBullets": ["string", ...],
+  "aiMatchPercentage": number  // 0 to 100
+}
 
-OUTPUT:`, userPrompt, lang, lang, getProductJSONString(p), strings.ToUpper(lang), lang)
+## ADDITIONAL DATA TO CONSIDER:
+- product_video_url
+- lastest_volume
+- shop_name
+- promotion_link / promo_code_info
+- app_sale_price / target_sale_price
+- first_level_category_name / second_level_category_name
+- evaluate_rate (normalized product rating)
+- platform_product_type
+- hot_product_commission_rate
+- commission_rate
+
+OUTPUT:`, userPrompt, lang, lang, getProductJSONString(p))
 
 	log.Printf("Enhancing product content for language: %s", lang)
 
@@ -531,7 +587,6 @@ OUTPUT:`, userPrompt, lang, lang, getProductJSONString(p), strings.ToUpper(lang)
 	// Ensure critical fields remain unchanged
 	enhancedProduct.ID = p.ID
 	enhancedProduct.ImageURL = p.ImageURL
-	enhancedProduct.AIMatchPercentage = aiMatchPercentage
 	enhancedProduct.Price = p.Price
 	enhancedProduct.ProductRating = p.ProductRating
 	enhancedProduct.SellerScore = p.SellerScore
@@ -547,22 +602,20 @@ OUTPUT:`, userPrompt, lang, lang, getProductJSONString(p), strings.ToUpper(lang)
 // getProductJSONString returns the product as a JSON string for the prompt
 func getProductJSONString(p *domain.Product) string {
 	productMap := map[string]interface{}{
-		"id":                 p.ID,
-		"title":              p.Title,
-		"imageUrl":           p.ImageURL,
-		"aiMatchPercentage":  p.AIMatchPercentage,
-		"price":              p.Price,
-		"productRating":      p.ProductRating,
-		"sellerScore":        p.SellerScore,
-		"deliveryEstimate":   p.DeliveryEstimate,
-		"description":        p.Description,
-		"customerHighlights": p.CustomerHighlights,
-		"customerReview":     p.CustomerReview,
-		"numberSold":         p.NumberSold,
-		"summaryBullets":     p.SummaryBullets,
-		"deeplinkUrl":        p.DeeplinkURL,
-		"taxRate":            p.TaxRate,
-		"discount":           p.Discount,
+		"id":                p.ID,
+		"title":             p.Title,
+		"imageUrl":          p.ImageURL,
+		"aiMatchPercentage": p.AIMatchPercentage,
+		"price":             p.Price,
+		"productRating":     p.ProductRating,
+		"sellerScore":       p.SellerScore,
+		"deliveryEstimate":  p.DeliveryEstimate,
+		"description":       p.Description,
+		"numberSold":        p.NumberSold,
+		"summaryBullets":    p.SummaryBullets,
+		"deeplinkUrl":       p.DeeplinkURL,
+		"taxRate":           p.TaxRate,
+		"discount":          p.Discount,
 	}
 
 	jsonBytes, _ := json.MarshalIndent(productMap, "", "  ")
@@ -570,24 +623,21 @@ func getProductJSONString(p *domain.Product) string {
 }
 
 // createBasicEnhancedProduct creates enhanced content without LLM
-func (g *GeminiLLMGateway) createBasicEnhancedProduct(p *domain.Product, userPrompt, lang string, aiMatchPercentage int) *domain.Product {
+func (g *GeminiLLMGateway) createBasicEnhancedProduct(p *domain.Product, userPrompt, lang string) *domain.Product {
 	enhanced := &domain.Product{
-		ID:                 p.ID,
-		Title:              p.Title,
-		ImageURL:           p.ImageURL,
-		AIMatchPercentage:  aiMatchPercentage,
-		Price:              p.Price,
-		ProductRating:      p.ProductRating,
-		SellerScore:        p.SellerScore,
-		DeliveryEstimate:   p.DeliveryEstimate,
-		Description:        enhanceDescription(p.Description, lang),
-		CustomerHighlights: enhanceHighlights(p.CustomerHighlights, lang),
-		CustomerReview:     enhanceReview(p.CustomerReview, lang),
-		NumberSold:         p.NumberSold,
-		SummaryBullets:     createSummaryBullets(p, lang),
-		DeeplinkURL:        p.DeeplinkURL,
-		TaxRate:            p.TaxRate,
-		Discount:           p.Discount,
+		ID:               p.ID,
+		Title:            p.Title,
+		ImageURL:         p.ImageURL,
+		Price:            p.Price,
+		ProductRating:    p.ProductRating,
+		SellerScore:      p.SellerScore,
+		DeliveryEstimate: p.DeliveryEstimate,
+		Description:      enhanceDescription(p.Description, lang),
+		NumberSold:       p.NumberSold,
+		SummaryBullets:   createSummaryBullets(p, lang),
+		DeeplinkURL:      p.DeeplinkURL,
+		TaxRate:          p.TaxRate,
+		Discount:         p.Discount,
 	}
 	return enhanced
 }
@@ -597,20 +647,6 @@ func enhanceDescription(desc, lang string) string {
 		return "ይህ ምርት በጥራቱ የታወቀ እና በደንበኞች የተወደደ ነው። ከፍተኛ ጥራት ያለው ዲዛይን እና አስተማማኝ አገልግሎት ይገልጻል። በተጠቃሚዎች አወንታዊ አስተያየት የተረጋገጠ የምርት ልምድ ያቀርባል።"
 	}
 	return "This high-quality product is known for its excellent performance and customer satisfaction. It features durable construction and reliable functionality that users appreciate. The product has received positive feedback for its consistent delivery on promises and overall value."
-}
-
-func enhanceHighlights(highlights, lang string) string {
-	if lang == "am" {
-		return "★ ከፍተኛ ጥራት ያለው ምርት\n→ በደንበኞች የተወደደ\n• አስተማማኝ አፈጻጸም\n→ ዘመናዊ ዲዛይን"
-	}
-	return "★ High-quality construction\n→ Customer favorite\n• Reliable performance\n→ Modern design"
-}
-
-func enhanceReview(review, lang string) string {
-	if lang == "am" {
-		return "ተጠቃሚዎች ይህን ምርት ለጥራቱ እና አስተማማኝነቱ ያነግራሉ። ከፍተኛ የደንበኛ እርካታ ያለው ምርት ነው።"
-	}
-	return "Users praise this product for its quality and reliability. It has generated high customer satisfaction and positive feedback across various platforms."
 }
 
 func createSummaryBullets(p *domain.Product, lang string) []string {
@@ -628,80 +664,4 @@ func createSummaryBullets(p *domain.Product, lang string) []string {
 		"• Reliable performance and durability",
 		"→ Modern and user-friendly design",
 	}
-}
-
-// calculateAIMatchPercentage calculates relevance score based on product data and user prompt
-func calculateAIMatchPercentage(p *domain.Product, userPrompt string) int {
-	score := 0
-	userPrompt = strings.ToLower(userPrompt)
-
-	// Text relevance scoring
-	score += calculateTextMatchScore(p.Title, userPrompt, 30)
-	score += calculateTextMatchScore(p.Description, userPrompt, 20)
-	score += calculateTextMatchScore(p.CustomerHighlights+" "+p.CustomerReview, userPrompt, 15)
-
-	// Quality indicators
-	if p.ProductRating >= 4.0 {
-		score += 10
-	}
-	if p.SellerScore >= 90 {
-		score += 8
-	}
-	if p.NumberSold > 1000 {
-		score += 7
-	}
-
-	// Context matching
-	if containsBudgetKeywords(userPrompt) {
-		score += 10
-	}
-	if containsDeliveryKeywords(userPrompt) {
-		score += 10
-	}
-
-	return min(score, 100)
-}
-
-func calculateTextMatchScore(text, userPrompt string, maxScore int) int {
-	text = strings.ToLower(text)
-	words := strings.Fields(userPrompt)
-	if len(words) == 0 {
-		return 0
-	}
-
-	matchCount := 0
-	for _, word := range words {
-		if len(word) > 3 && strings.Contains(text, word) {
-			matchCount++
-		}
-	}
-
-	return int(float64(matchCount) / float64(len(words)) * float64(maxScore))
-}
-
-func containsBudgetKeywords(prompt string) bool {
-	keywords := []string{"price", "cost", "budget", "cheap", "expensive", "affordable", "$", "etb", "birr", "ብር"}
-	for _, keyword := range keywords {
-		if strings.Contains(prompt, keyword) {
-			return true
-		}
-	}
-	return false
-}
-
-func containsDeliveryKeywords(prompt string) bool {
-	keywords := []string{"delivery", "shipping", "arrive", "receive", "days", "time", "fast", "quick", "slow"}
-	for _, keyword := range keywords {
-		if strings.Contains(prompt, keyword) {
-			return true
-		}
-	}
-	return false
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
