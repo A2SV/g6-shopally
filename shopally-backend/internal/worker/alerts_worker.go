@@ -37,7 +37,7 @@ func NewAlertsWorker(coll *mongo.Collection, price *util.PriceService, push doma
 		Price:     price,
 		Push:      push,
 		BatchSize: 500,
-		Interval:  10 * time.Minute,
+		Interval:  4 * time.Hour,
 	}
 }
 

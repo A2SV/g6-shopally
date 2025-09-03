@@ -73,7 +73,7 @@ func main() {
 	}
 
 	// Keep the process alive: retain FX warm ticker
-	ticker := time.NewTicker(30 * time.Minute)
+	ticker := time.NewTicker(6 * time.Hour)
 	defer ticker.Stop()
 	for range ticker.C {
 		warm()
