@@ -71,7 +71,6 @@ type AlertsWorkerSuite struct {
 	price *util.PriceService
 }
 
-
 // gateway mock for PriceService
 type priceGW struct{ mock.Mock }
 
@@ -180,7 +179,6 @@ func (s *AlertsWorkerSuite) TestTick_FindError_Propagates() {
 func (s *AlertsWorkerSuite) priceGateway() *priceGW {
 	// PriceService.New wrapped our priceGW, access it via the private field through type assertion
 	// We created PriceService with util.New(pgw) in SetupTest, so s.price.ag should be *priceGW
-	type hasAg interface{ GetAg() interface{} }
 	// expose via hack: since we can't access unexported field, we rebuild service
 	pgw := &priceGW{}
 	s.price = util.New(pgw)
