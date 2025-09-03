@@ -7,7 +7,6 @@ import (
 	"time"
 
 	imocks "github.com/shopally-ai/internal/mocks"
-	"github.com/shopally-ai/pkg/domain"
 	"github.com/shopally-ai/pkg/util"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -71,13 +70,13 @@ type AlertsWorkerSuite struct {
 	price *util.PriceService
 }
 
-// gateway mock for PriceService
-type priceGW struct{ mock.Mock }
+// fake fetcher implementing util.PriceFetcher
+type fakeFetcher struct{ mock.Mock }
 
-func (p *priceGW) FetchProducts(ctx context.Context, query string, filters map[string]interface{}) ([]*domain.Product, error) {
-	args := p.Called(ctx, query, filters)
+func (f *fakeFetcher) FetchPrices(ctx context.Context, ids []string) (map[string]util.PriceAmounts, error) {
+	args := f.Called(ctx, ids)
 	if v := args.Get(0); v != nil {
-		return v.([]*domain.Product), args.Error(1)
+		return v.(map[string]util.PriceAmounts), args.Error(1)
 	}
 	return nil, args.Error(1)
 }
@@ -87,8 +86,7 @@ func (s *AlertsWorkerSuite) SetupTest() {
 	s.coll = &mockColl{}
 	s.cur = &mockCursor{}
 	s.push = imocks.NewIPushNotificationGateway(s.T())
-	pgw := &priceGW{}
-	s.price = util.New(pgw)
+	s.price = util.NewWithFetcher(&fakeFetcher{})
 }
 
 func (s *AlertsWorkerSuite) TestTick_HappyPath_PriceDrop() {
@@ -121,9 +119,10 @@ func (s *AlertsWorkerSuite) TestTick_HappyPath_PriceDrop() {
 	s.coll.On("Find", mock.Anything, mock.Anything).Return(s.cur, nil).Once()
 	s.coll.On("UpdateOne", mock.Anything, mock.Anything, mock.Anything).Return(&mongo.UpdateResult{}, nil).Once()
 
-	// price gateway returns lower price
-	pgw := s.priceGateway()
-	pgw.On("FetchProducts", mock.Anything, "", mock.MatchedBy(func(f map[string]interface{}) bool { return f["product_ids"] != nil })).Return([]*domain.Product{{ID: "p1", Price: domain.Price{USD: 18}}}, nil).Once()
+	// fetcher returns lower price
+	ff := &fakeFetcher{}
+	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]util.PriceAmounts{"p1": {USD: 18}}, nil).Once()
+	s.price = util.NewWithFetcher(ff)
 
 	// expect push
 	s.push.On("Send", mock.Anything, "tok1", mock.Anything, mock.Anything, mock.Anything).Return("ok", nil).Once()
@@ -160,8 +159,9 @@ func (s *AlertsWorkerSuite) TestTick_NoDrop_NoPush_NoUpdate() {
 	s.cur.On("Close", mock.Anything).Return(nil).Once()
 	s.coll.On("Find", mock.Anything, mock.Anything).Return(s.cur, nil).Once()
 
-	pgw := s.priceGateway()
-	pgw.On("FetchProducts", mock.Anything, "", mock.Anything).Return([]*domain.Product{{ID: "p2", Price: domain.Price{USD: 12}}}, nil).Once()
+	ff := &fakeFetcher{}
+	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]util.PriceAmounts{"p2": {USD: 12}}, nil).Once()
+	s.price = util.NewWithFetcher(ff)
 
 	w := &AlertsWorker{Coll: s.coll, Price: s.price, Push: s.push, BatchSize: 100, Interval: time.Hour}
 	s.NoError(w.tick(s.ctx))
@@ -175,15 +175,7 @@ func (s *AlertsWorkerSuite) TestTick_FindError_Propagates() {
 	s.Error(w.tick(s.ctx))
 }
 
-// helper to get underlying price gateway mock
-func (s *AlertsWorkerSuite) priceGateway() *priceGW {
-	// PriceService.New wrapped our priceGW, access it via the private field through type assertion
-	// We created PriceService with util.New(pgw) in SetupTest, so s.price.ag should be *priceGW
-	// expose via hack: since we can't access unexported field, we rebuild service
-	pgw := &priceGW{}
-	s.price = util.New(pgw)
-	return pgw
-}
+// no need for gateway accessor since we inject the fetcher directly
 
 type assertErr string
 

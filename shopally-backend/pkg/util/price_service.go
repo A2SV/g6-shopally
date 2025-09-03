@@ -14,20 +14,21 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/shopally-ai/pkg/domain"
 )
 
 // PriceService provides reusable utilities around product prices.
-// It reuses the existing AlibabaGateway to fetch product data from AliExpress.
 type PriceService struct {
-	ag  domain.AlibabaGateway
-	poc *priceOnlyClient // optional lightweight AliExpress price-only client
+	// ag is kept for API compatibility, but not used as a fallback.
+	// We intentionally avoid using gateway-based FetchProducts here.
+	// ag  domain.AlibabaGateway
+	// poc fetches prices; must be configured, otherwise methods return an error.
+	poc PriceFetcher
 }
 
 // New creates a new PriceService.
-func New(ag domain.AlibabaGateway) *PriceService {
-	return &PriceService{ag: ag}
+func New(ag interface{}) *PriceService { // kept for call-site compatibility, but does not configure a fetcher
+	_ = ag
+	return &PriceService{}
 }
 
 // NewWithAli creates a PriceService that uses a lightweight AliExpress client directly,
@@ -36,13 +37,16 @@ func NewWithAli(appKey, appSecret, baseURL string) *PriceService {
 	if strings.TrimSpace(baseURL) == "" {
 		baseURL = "https://api-sg.aliexpress.com/sync"
 	}
-	return &PriceService{poc: &priceOnlyClient{
+	return &PriceService{poc: &aliPriceFetcher{client: &priceOnlyClient{
 		appKey:    appKey,
 		appSecret: appSecret,
 		baseURL:   baseURL,
 		http:      &http.Client{Timeout: 10 * time.Second},
-	}}
+	}}}
 }
+
+// NewWithFetcher allows injecting a custom fetcher (useful for tests).
+func NewWithFetcher(f PriceFetcher) *PriceService { return &PriceService{poc: f} }
 
 // UpdatePriceIfChanged fetches the product identified by productID from AliExpress
 // and returns the numeric USD price from the mapped product. If the fetched price
@@ -60,35 +64,18 @@ func (s *PriceService) UpdatePriceIfChanged(ctx context.Context, productID strin
 		return 0, false, fmt.Errorf("product id is empty")
 	}
 
-	var updated float64
-	if s.poc != nil {
-		m, err := s.poc.fetchPrices(ctx, []string{productID})
-		if err != nil {
-			return 0, false, fmt.Errorf("aliexpress fetch error: %w", err)
-		}
-		v, ok := m[productID]
-		if !ok {
-			return 0, false, fmt.Errorf("product %s not found on AliExpress", productID)
-		}
-		updated = v.USD
-	} else {
-		// Request a single product by id via gateway
-		filters := map[string]interface{}{
-			"product_id": productID,
-			"page_no":    1,
-			"page_size":  1,
-			// optimize upstream detail.get to return only price fields
-			"price_only": true,
-		}
-		products, err := s.ag.FetchProducts(ctx, "", filters)
-		if err != nil {
-			return 0, false, fmt.Errorf("aliexpress fetch error: %w", err)
-		}
-		if len(products) == 0 {
-			return 0, false, fmt.Errorf("product %s not found on AliExpress", productID)
-		}
-		updated = products[0].Price.USD
+	if s.poc == nil {
+		return 0, false, fmt.Errorf("price fetcher not configured")
 	}
+	m, err := s.poc.FetchPrices(ctx, []string{productID})
+	if err != nil {
+		return 0, false, fmt.Errorf("aliexpress fetch error: %w", err)
+	}
+	v, ok := m[productID]
+	if !ok {
+		return 0, false, fmt.Errorf("product %s not found on AliExpress", productID)
+	}
+	updated := v.USD
 
 	// Small epsilon to avoid floating point noise
 	const eps = 1e-6
@@ -137,35 +124,15 @@ func (s *PriceService) UpdatePricesIfChangedBatch(ctx context.Context, productID
 			end = len(uniq)
 		}
 		chunk := uniq[i:end]
-		if s.poc != nil {
-			prices, err := s.poc.fetchPrices(ctx, chunk)
-			if err != nil {
-				return nil, fmt.Errorf("aliexpress batch fetch error: %w", err)
-			}
-			for id, pr := range prices {
-				updated := pr.USD
-				out[id] = PriceChange{Price: updated}
-			}
-		} else {
-			filters := map[string]interface{}{ // let gateway translate this appropriately
-				"product_ids": strings.Join(chunk, ","),
-				"page_no":     1,
-				"page_size":   len(chunk),
-				// optimize upstream detail.get to return only price fields
-				"price_only": true,
-			}
-			products, err := s.ag.FetchProducts(ctx, "", filters)
-			if err != nil {
-				return nil, fmt.Errorf("aliexpress batch fetch error: %w", err)
-			}
-			for _, p := range products {
-				id := strings.TrimSpace(p.ID)
-				if id == "" {
-					continue
-				}
-				updated := p.Price.USD
-				out[id] = PriceChange{Price: updated}
-			}
+		if s.poc == nil {
+			return nil, fmt.Errorf("price fetcher not configured")
+		}
+		prices, err := s.poc.FetchPrices(ctx, chunk)
+		if err != nil {
+			return nil, fmt.Errorf("aliexpress batch fetch error: %w", err)
+		}
+		for id, pr := range prices {
+			out[id] = PriceChange{Price: pr.USD}
 		}
 	}
 	return out, nil
@@ -178,37 +145,18 @@ func (s *PriceService) GetCurrentPriceUSDAndETB(ctx context.Context, productID s
 	if productID == "" {
 		return 0, 0, fmt.Errorf("product id is empty")
 	}
-	if s.poc != nil {
-		m, err := s.poc.fetchPrices(ctx, []string{productID})
-		if err != nil {
-			return 0, 0, err
-		}
-		pr, ok := m[productID]
-		if !ok {
-			return 0, 0, fmt.Errorf("product %s not found on AliExpress", productID)
-		}
-		return pr.USD, pr.ETB, nil
+	if s.poc == nil {
+		return 0, 0, fmt.Errorf("price fetcher not configured")
 	}
-	// Fallback to gateway
-	filters := map[string]interface{}{
-		"product_id": productID,
-		"page_no":    1,
-		"page_size":  1,
-		"price_only": true,
-	}
-	products, err := s.ag.FetchProducts(ctx, "", filters)
+	m, err := s.poc.FetchPrices(ctx, []string{productID})
 	if err != nil {
-		return 0, 0, fmt.Errorf("aliexpress fetch error: %w", err)
+		return 0, 0, err
 	}
-	if len(products) == 0 {
+	pr, ok := m[productID]
+	if !ok {
 		return 0, 0, fmt.Errorf("product %s not found on AliExpress", productID)
 	}
-	usd := products[0].Price.USD
-	etb, _, convErr := USDToETB(usd)
-	if convErr != nil {
-		etb = 0
-	}
-	return usd, etb, nil
+	return pr.USD, pr.ETB, nil
 }
 
 // GetCurrentPricesUSDAndETBBatch returns current USD and ETB prices for multiple product IDs.
@@ -239,33 +187,15 @@ func (s *PriceService) GetCurrentPricesUSDAndETBBatch(ctx context.Context, produ
 			end = len(uniq)
 		}
 		chunk := uniq[i:end]
-		if s.poc != nil {
-			mp, err := s.poc.fetchPrices(ctx, chunk)
-			if err != nil {
-				return nil, err
-			}
-			for id, pr := range mp {
-				out[id] = struct{ USD, ETB float64 }{USD: pr.USD, ETB: pr.ETB}
-			}
-		} else {
-			filters := map[string]interface{}{
-				"product_ids": strings.Join(chunk, ","),
-				"page_no":     1,
-				"page_size":   len(chunk),
-				"price_only":  true,
-			}
-			prods, err := s.ag.FetchProducts(ctx, "", filters)
-			if err != nil {
-				return nil, err
-			}
-			for _, p := range prods {
-				usd := p.Price.USD
-				etb, _, convErr := USDToETB(usd)
-				if convErr != nil {
-					etb = 0
-				}
-				out[strings.TrimSpace(p.ID)] = struct{ USD, ETB float64 }{USD: usd, ETB: etb}
-			}
+		if s.poc == nil {
+			return nil, fmt.Errorf("price fetcher not configured")
+		}
+		mp, err := s.poc.FetchPrices(ctx, chunk)
+		if err != nil {
+			return nil, err
+		}
+		for id, pr := range mp {
+			out[id] = struct{ USD, ETB float64 }{USD: pr.USD, ETB: pr.ETB}
 		}
 	}
 	return out, nil
@@ -385,4 +315,27 @@ func parseFloatPriceLite(s string) float64 {
 		return 0
 	}
 	return f
+}
+
+// PriceAmounts carries amounts in USD and ETB.
+type PriceAmounts struct{ USD, ETB float64 }
+
+// PriceFetcher is a minimal contract used by PriceService for fetching prices.
+type PriceFetcher interface {
+	FetchPrices(ctx context.Context, productIDs []string) (map[string]PriceAmounts, error)
+}
+
+// aliPriceFetcher adapts priceOnlyClient to PriceFetcher.
+type aliPriceFetcher struct{ client *priceOnlyClient }
+
+func (a *aliPriceFetcher) FetchPrices(ctx context.Context, productIDs []string) (map[string]PriceAmounts, error) {
+	mp, err := a.client.fetchPrices(ctx, productIDs)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]PriceAmounts, len(mp))
+	for id, pr := range mp {
+		out[id] = PriceAmounts(pr)
+	}
+	return out, nil
 }

@@ -4,35 +4,27 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	imocks "github.com/shopally-ai/internal/mocks"
-	"github.com/shopally-ai/pkg/domain"
 	"github.com/stretchr/testify/mock"
 )
 
-// mockGateway is a tiny test double implementing domain.AlibabaGateway for unit tests.
-type mockGateway struct {
-	products []*domain.Product
-	err      error
+type fakeFetcher struct {
+	mock.Mock
 }
 
-func (m *mockGateway) FetchProducts(ctx context.Context, query string, filters map[string]interface{}) ([]*domain.Product, error) {
-	if m.err != nil {
-		return nil, m.err
+func (f *fakeFetcher) FetchPrices(ctx context.Context, ids []string) (map[string]PriceAmounts, error) {
+	args := f.Called(ctx, ids)
+	if v := args.Get(0); v != nil {
+		return v.(map[string]PriceAmounts), args.Error(1)
 	}
-	return m.products, nil
+	return nil, args.Error(1)
 }
 
 func TestUpdatePriceIfChanged_Changed(t *testing.T) {
-	mg := &mockGateway{
-		products: []*domain.Product{{
-			ID:    "p1",
-			Price: domain.Price{USD: 20.0, FXTimestamp: time.Now()},
-		}},
-	}
-
-	svc := New(mg)
+	ff := &fakeFetcher{}
+	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{"p1": {USD: 20}}, nil).Once()
+	svc := NewWithFetcher(ff)
 	updated, changed, err := svc.UpdatePriceIfChanged(context.Background(), "p1", 10.0)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -46,14 +38,9 @@ func TestUpdatePriceIfChanged_Changed(t *testing.T) {
 }
 
 func TestUpdatePriceIfChanged_Unchanged(t *testing.T) {
-	mg := &mockGateway{
-		products: []*domain.Product{{
-			ID:    "p2",
-			Price: domain.Price{USD: 15.5, FXTimestamp: time.Now()},
-		}},
-	}
-
-	svc := New(mg)
+	ff := &fakeFetcher{}
+	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{"p2": {USD: 15.5}}, nil).Once()
+	svc := NewWithFetcher(ff)
 	updated, changed, err := svc.UpdatePriceIfChanged(context.Background(), "p2", 15.5)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -67,8 +54,9 @@ func TestUpdatePriceIfChanged_Unchanged(t *testing.T) {
 }
 
 func TestUpdatePriceIfChanged_ProductNotFound(t *testing.T) {
-	mg := &mockGateway{products: []*domain.Product{}}
-	svc := New(mg)
+	ff := &fakeFetcher{}
+	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{}, nil).Once()
+	svc := NewWithFetcher(ff)
 	_, _, err := svc.UpdatePriceIfChanged(context.Background(), "missing", 0)
 	if err == nil {
 		t.Fatalf("expected error for missing product, got nil")
@@ -76,8 +64,9 @@ func TestUpdatePriceIfChanged_ProductNotFound(t *testing.T) {
 }
 
 func TestUpdatePriceIfChanged_GatewayError(t *testing.T) {
-	mg := &mockGateway{err: errors.New("upstream failure")}
-	svc := New(mg)
+	ff := &fakeFetcher{}
+	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(nil, errors.New("upstream failure")).Once()
+	svc := NewWithFetcher(ff)
 	_, _, err := svc.UpdatePriceIfChanged(context.Background(), "p3", 0)
 	if err == nil {
 		t.Fatalf("expected error when gateway returns error, got nil")
@@ -85,13 +74,9 @@ func TestUpdatePriceIfChanged_GatewayError(t *testing.T) {
 }
 
 func TestUpdatePricesIfChangedBatch_ReturnsFoundPrices(t *testing.T) {
-	mg := &mockGateway{
-		products: []*domain.Product{
-			{ID: "x", Price: domain.Price{USD: 2}},
-			{ID: "y", Price: domain.Price{USD: 4}},
-		},
-	}
-	svc := New(mg)
+	ff := &fakeFetcher{}
+	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{"x": {USD: 2}, "y": {USD: 4}}, nil).Once()
+	svc := NewWithFetcher(ff)
 	current := map[string]float64{"x": 2, "y": 3}
 	res, err := svc.UpdatePricesIfChangedBatch(context.Background(), []string{"x", "y", "y", "z", ""}, current)
 	if err != nil {
@@ -117,17 +102,20 @@ func TestGetCurrentPriceUSDAndETB_SuccessWithRate(t *testing.T) {
 	c.On("Get", mock.Anything, FXKeyUSDToETB).Return("60", true, nil)
 	SetFXCache(c)
 
-	mg := &mockGateway{products: []*domain.Product{{ID: "p1", Price: domain.Price{USD: 10}}}}
-	svc := New(mg)
-	usd, etb, err := svc.GetCurrentPriceUSDAndETB(context.Background(), "p1")
+	// Fetcher computes ETB using USDToETB like the real client
+	ff := &fakeFetcher{}
+	etb, _, _ := USDToETB(10)
+	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{"p1": {USD: 10, ETB: etb}}, nil).Once()
+	svc := NewWithFetcher(ff)
+	usd, etbGot, err := svc.GetCurrentPriceUSDAndETB(context.Background(), "p1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if usd != 10 {
 		t.Fatalf("expected usd=10, got %v", usd)
 	}
-	if etb != 600 { // 10 * 60
-		t.Fatalf("expected etb=600, got %v", etb)
+	if etbGot != 600 { // 10 * 60
+		t.Fatalf("expected etb=600, got %v", etbGot)
 	}
 }
 
@@ -137,17 +125,19 @@ func TestGetCurrentPriceUSDAndETB_RateMissingEtbZero(t *testing.T) {
 	c.On("Get", mock.Anything, FXKeyUSDToETB).Return("", false, nil)
 	SetFXCache(c)
 
-	mg := &mockGateway{products: []*domain.Product{{ID: "p2", Price: domain.Price{USD: 7.5}}}}
-	svc := New(mg)
-	usd, etb, err := svc.GetCurrentPriceUSDAndETB(context.Background(), "p2")
+	ff := &fakeFetcher{}
+	etb, _, _ := USDToETB(7.5) // will be 0 due to missing rate
+	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{"p2": {USD: 7.5, ETB: etb}}, nil).Once()
+	svc := NewWithFetcher(ff)
+	usd, etbGot, err := svc.GetCurrentPriceUSDAndETB(context.Background(), "p2")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if usd != 7.5 {
 		t.Fatalf("expected usd=7.5, got %v", usd)
 	}
-	if etb != 0 {
-		t.Fatalf("expected etb=0 when rate missing, got %v", etb)
+	if etbGot != 0 {
+		t.Fatalf("expected etb=0 when rate missing, got %v", etbGot)
 	}
 }
 
@@ -157,11 +147,14 @@ func TestGetCurrentPricesUSDAndETBBatch_Success(t *testing.T) {
 	c.On("Get", mock.Anything, FXKeyUSDToETB).Return("50", true, nil)
 	SetFXCache(c)
 
-	mg := &mockGateway{products: []*domain.Product{
-		{ID: "a", Price: domain.Price{USD: 3}},
-		{ID: "b", Price: domain.Price{USD: 4}},
-	}}
-	svc := New(mg)
+	ff := &fakeFetcher{}
+	etbA, _, _ := USDToETB(3)
+	etbB, _, _ := USDToETB(4)
+	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{
+		"a": {USD: 3, ETB: etbA},
+		"b": {USD: 4, ETB: etbB},
+	}, nil).Once()
+	svc := NewWithFetcher(ff)
 	out, err := svc.GetCurrentPricesUSDAndETBBatch(context.Background(), []string{"a", "b", "c", "a", ""})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
