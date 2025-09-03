@@ -25,6 +25,8 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
+	log.Printf("Configuration loaded: %+v\n", cfg)
+
 	// Connect to MongoDB using custom db package
 	client, err := platform.Connect(cfg.Mongo.URI)
 	if err != nil {
