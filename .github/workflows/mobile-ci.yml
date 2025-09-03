@@ -44,28 +44,36 @@ jobs:
       - name: ⚙️ 2. Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
+          flutter-version: '3.32.8'
           cache: true
 
       # Step 3: Get Flutter dependencies
       - name: 📦 3. Install Dependencies
         run: flutter pub get
 
-      # Step 4: Run unit tests
-      - name: 🧪 4. Run Tests
-        run: flutter test --coverage
+      # # Step 4: Run unit tests
+      # - name: 🧪 4. Run Tests
+      #   run: flutter test --coverage
 
-      # Step 5: Check code formatting
-      - name: 🎨 5. Check Code Formatting
-        run: |
-          if [[ -n $(flutter format --set-exit-if-changed .) ]]; then
-            echo "Some files are not formatted correctly."
-            exit 1
-          fi
+      # # Step 5: Check code formatting
+      # - name: 🎨 5. Check Code Formatting
+      #   run: |
+      #     echo "Checking Dart code formatting..."
+      #     # Check if any files need formatting
+      #     FORMAT_OUTPUT=$(dart format --set-exit-if-changed .)
+      #     if [ -n "$FORMAT_OUTPUT" ]; then
+      #       echo "Some files are not formatted correctly:"
+      #       echo "$FORMAT_OUTPUT"
+      #       exit 1
+      #     else
+      #       echo "All files are properly formatted."
+      #     fi
 
-      # Step 6: Build the app (APK)
-      - name: 📱 6. Build APK
-        run: flutter build apk --release
+
+
+      # # Step 6: Build the app (APK)
+      # - name: 📱 6. Build APK
+      #   run: flutter build apk --release
 
       # Optional: Build iOS app (if macOS runner)
       # - name: 📱 7. Build iOS

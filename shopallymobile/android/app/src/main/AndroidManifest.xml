@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Required on Android 13+ to post notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Required for WebSocket/HTTP connectivity in release builds -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="shopallymobile"
         android:name="${applicationName}"

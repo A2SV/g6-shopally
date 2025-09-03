@@ -1,0 +1,34 @@
+{
+  "en": {
+    "sign_in": "Sign in",
+    "sign_out": "Sign out",
+    "guest": "Guest",
+    "not_signed_in": "Not signed in",
+    "favorites": "Favorites",
+    "notifications": "Notifications",
+    "language": "Language",
+    "english": "English",
+    "amharic": "Amharic",
+    "currency": "Currency",
+    "usd": "USD",
+    "birr": "BIRR",
+    "version": "Version",
+    "update": "UPDATE"
+  },
+  "am": {
+    "sign_in": "ግባ",
+    "sign_out": "ውጣ",
+    "guest": "እንግዳ",
+    "not_signed_in": "አልተግባም",
+    "favorites": "የተወደዱ",
+    "notifications": "ማሳወቂያዎች",
+    "language": "ቋንቋ",
+    "english": "እንግሊዝኛ",
+    "amharic": "አማርኛ",
+    "currency": "ገንዘብ አይነት",
+    "usd": "ዶላር (USD)",
+    "birr": "ብር",
+    "version": "ስሪት",
+    "update": "አዘምን"
+  }
+}
