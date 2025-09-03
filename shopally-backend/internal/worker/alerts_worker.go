@@ -15,7 +15,7 @@ import (
 
 // AlertsWorker periodically checks saved alerts and sends notifications on price drops.
 type AlertsWorker struct {
-	Coll      *mongo.Collection
+	Coll      alertsCollection
 	Price     *util.PriceService
 	Push      domain.IPushNotificationGateway
 	BatchSize int
@@ -31,9 +31,24 @@ type alertRecord struct {
 	CurrentPrice float64
 }
 
+// alertsCollection abstracts the subset of mongo.Collection used by the worker.
+type alertsCollection interface {
+	Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (cursor, error)
+	UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error)
+}
+
+// cursor abstracts the subset of mongo.Cursor used by the worker.
+type cursor interface {
+	Next(context.Context) bool
+	Decode(val interface{}) error
+	Err() error
+	Close(context.Context) error
+}
+
+// NewAlertsWorker constructs a worker using a real mongo collection by wrapping it into adapters.
 func NewAlertsWorker(coll *mongo.Collection, price *util.PriceService, push domain.IPushNotificationGateway) *AlertsWorker {
 	return &AlertsWorker{
-		Coll:      coll,
+		Coll:      &mongoCollectionAdapter{c: coll},
 		Price:     price,
 		Push:      push,
 		BatchSize: 500,
@@ -160,3 +175,25 @@ func (w *AlertsWorker) processBatch(ctx context.Context, alerts []alertRecord) e
 	}
 	return nil
 }
+
+// mongo adapters to satisfy interfaces
+type mongoCollectionAdapter struct{ c *mongo.Collection }
+
+func (m *mongoCollectionAdapter) Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (cursor, error) {
+	cur, err := m.c.Find(ctx, filter, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &mongoCursorAdapter{cur: cur}, nil
+}
+
+func (m *mongoCollectionAdapter) UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
+	return m.c.UpdateOne(ctx, filter, update, opts...)
+}
+
+type mongoCursorAdapter struct{ cur *mongo.Cursor }
+
+func (mc *mongoCursorAdapter) Next(ctx context.Context) bool   { return mc.cur.Next(ctx) }
+func (mc *mongoCursorAdapter) Decode(val interface{}) error    { return mc.cur.Decode(val) }
+func (mc *mongoCursorAdapter) Err() error                      { return mc.cur.Err() }
+func (mc *mongoCursorAdapter) Close(ctx context.Context) error { return mc.cur.Close(ctx) }
