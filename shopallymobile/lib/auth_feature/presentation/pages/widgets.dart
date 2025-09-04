@@ -13,10 +13,7 @@ Widget settingsRow({
         if (trailingText != null)
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
-            child: Text(
-              trailingText,
-              style: const TextStyle(color: Colors.black, fontSize: 14),
-            ),
+            child: Text(trailingText),
           ),
         const Icon(Icons.chevron_right),
       ],
@@ -32,7 +29,7 @@ Future<void> showSocialLoginBottomSheet(
 }) {
   return showModalBottomSheet(
     context: context,
-    backgroundColor: Colors.white,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     isScrollControlled: true,
 
     shape: const RoundedRectangleBorder(
@@ -56,22 +53,25 @@ Future<void> showSocialLoginBottomSheet(
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.black12,
+                        color: Theme.of(ctx).dividerColor.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
-                  SizedBox(height: 40),
-                  const Text(
+                  const SizedBox(height: 40),
+                  Text(
                     "Social Login",
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                    style: Theme.of(ctx)
+                        .textTheme
+                        .headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     "Make a login using social network account",
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 20, color: Colors.black54),
+                    style: Theme.of(ctx).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 70),
                   ElevatedButton(
@@ -80,15 +80,17 @@ Future<void> showSocialLoginBottomSheet(
                       Navigator.pop(ctx);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
+                      backgroundColor: Theme.of(ctx).colorScheme.surface,
+                      foregroundColor: Theme.of(ctx).colorScheme.onSurface,
                       padding: const EdgeInsets.symmetric(
                         vertical: 18,
                         horizontal: 12,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
-                        side: const BorderSide(color: Color(0x11000000)),
+                        side: BorderSide(
+                          color: Theme.of(ctx).dividerColor.withOpacity(0.07),
+                        ),
                       ),
                     ),
                     child: Row(
@@ -102,12 +104,12 @@ Future<void> showSocialLoginBottomSheet(
                           fit: BoxFit.cover,
                         ),
                         const SizedBox(width: 10),
-                        const Text(
+                        Text(
                           'Sign in with Google Account',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: Theme.of(ctx)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -119,15 +121,17 @@ Future<void> showSocialLoginBottomSheet(
                       Navigator.pop(ctx);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
+                      backgroundColor: Theme.of(ctx).colorScheme.surface,
+                      foregroundColor: Theme.of(ctx).colorScheme.onSurface,
                       padding: const EdgeInsets.symmetric(
                         vertical: 18,
                         horizontal: 12,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
-                        side: const BorderSide(color: Color(0x11000000)),
+                        side: BorderSide(
+                          color: Theme.of(ctx).dividerColor.withOpacity(0.07),
+                        ),
                       ),
                     ),
                     child: Row(
@@ -141,12 +145,12 @@ Future<void> showSocialLoginBottomSheet(
                           fit: BoxFit.cover,
                         ),
                         const SizedBox(width: 10),
-                        const Text(
+                        Text(
                           'Sign in with Apple Account',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: Theme.of(ctx)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -178,6 +182,30 @@ Widget SwitchRow({
   required String title,
   required bool value,
   required ValueChanged<bool> onChanged,
+  required Color activeColor,
+  
+  bool dense = false,
+}) {
+  return ListTile(
+    dense: dense,  
+    title: Text(title),
+    trailing: Switch.adaptive(
+      value: value,  
+      onChanged: onChanged,
+      activeTrackColor: activeColor ,
+    ),
+    onTap: () => onChanged(!value),
+  );
+}
+
+
+
+Widget ThemeToggle({
+  required String title,
+  required bool value,
+  required ValueChanged<bool> onChanged,
+  required Color activeColor,
+
   bool dense = false,
 }) {
   return ListTile(
@@ -186,10 +214,7 @@ Widget SwitchRow({
     trailing: Switch.adaptive(
       value: value,
       onChanged: onChanged,
-      activeColor: const Color.fromARGB(255, 255, 255, 255),
-      activeTrackColor: const Color.fromARGB(255, 168, 166, 166),
-      inactiveTrackColor: const Color.fromARGB(255, 255, 255, 255),
-      inactiveThumbColor: const Color.fromARGB(255, 198, 196, 196),
+      activeTrackColor: activeColor,
     ),
     onTap: () => onChanged(!value),
   );
@@ -200,31 +225,33 @@ Widget QuickTile({
   required String label,
   required VoidCallback onTap,
 }) {
-  return Container(
-    width: 150,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.1),
-          blurRadius: 4,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon),
-            const SizedBox(width: 8),
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-          ],
+  return Builder(
+    builder: (context) => Container(
+      width: 150,
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon),
+              const SizedBox(width: 8),
+              Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+            ],
+          ),
         ),
       ),
     ),
@@ -258,9 +285,9 @@ Widget PickerSheet({
   );
 }
 
-BoxDecoration cardDecoration() {
+BoxDecoration cardDecoration(BuildContext context) {
   return BoxDecoration(
-    color: Colors.white,
+    color: Theme.of(context).cardColor,
     borderRadius: BorderRadius.circular(16),
     boxShadow: const [
       BoxShadow(color: Color(0x11000000), blurRadius: 8, offset: Offset(0, 2)),
@@ -300,7 +327,7 @@ Future<bool?> showSignOutDialog(BuildContext context) {
     context: context,
     builder: (ctx) {
       return AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(ctx).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
         contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
@@ -325,7 +352,7 @@ Future<bool?> showSignOutDialog(BuildContext context) {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.black)),
+            child: Text('Cancel', style: TextStyle(color: Theme.of(ctx).colorScheme.onSurface)),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -360,9 +387,12 @@ Widget socialLoginDialog(
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 90),
-            const Text(
+            Text(
               "Social Login",
-              style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontSize: 30, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 5),
             Padding(
@@ -370,14 +400,14 @@ Widget socialLoginDialog(
               child: Text.rich(
                 TextSpan(
                   text: "Make a login using social ",
-                  style: const TextStyle(fontSize: 20, color: Colors.black),
+                  style: Theme.of(context).textTheme.titleMedium,
                   children: [
                     WidgetSpan(
                       child: Padding(
                         padding: const EdgeInsets.only(left: 25),
-                        child: const Text(
+                        child: Text(
                           "network account",
-                          style: TextStyle(fontSize: 20, color: Colors.black),
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
                     ),
@@ -401,12 +431,12 @@ Widget socialLoginDialog(
                     fit: BoxFit.cover,
                   ),
                   const SizedBox(width: 10),
-                  const Text(
+                  Text(
                     'Sign in with Google Account',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ],
               ),
@@ -426,13 +456,13 @@ Widget socialLoginDialog(
                     fit: BoxFit.cover,
                   ),
                   const SizedBox(width: 10),
-                  const Text(
+                  Text(
                     'Sign in with Apple Account',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                   ),
                 ],
               ),
             ),

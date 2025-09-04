@@ -11,8 +11,15 @@ import 'package:shopallymobile/core/localization/language_bloc.dart';
 import 'package:shopallymobile/core/localization/language_event.dart';
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key, required this.userRepository});
+  const ProfilePage({
+    super.key,
+    required this.userRepository,
+    required this.isDark,
+    required this.onDarkChanged,
+  });
   final UserRepository userRepository;
+  final bool isDark;
+  final ValueChanged<bool> onDarkChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +27,7 @@ class ProfilePage extends StatelessWidget {
       create: (_) =>
           UserAuthBloc(userRepository)..add(GetAuthenticatedUserEvent()),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF4F5F7),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
           child: BlocBuilder<UserAuthBloc, UserAuthState>(
             builder: (context, state) {
@@ -91,11 +98,11 @@ class ProfilePage extends StatelessWidget {
                     const SizedBox(height: 12),
                     // Settings card (static UI labels to match appearance)
                     Container(
-                      decoration: cardDecoration(),
+                      decoration: cardDecoration(context),
                       child: Column(
                         children: [
                           settingsRow(
-                            title: getText('language'),
+                            title: getText('language' ,),
                             trailingText: user?.language ?? getText('english'),
                             onTap: () async {
                               if (user == null) {
@@ -111,7 +118,7 @@ class ProfilePage extends StatelessWidget {
                                 context: context,
                                 builder: (ctx) {
                                   final options = [
-                                    getText('english'),
+                                    getText('english' , ),
                                     getText('amharic'),
                                   ];
                                   return SizedBox(
@@ -125,7 +132,7 @@ class ProfilePage extends StatelessWidget {
                                         children: options.map((lang) {
                                           // Show a check based on the user's canonical saved name
                                           final currentLangName =
-                                              (user?.language ?? 'English')
+                                              (user.language ?? 'English')
                                                   .toLowerCase();
                                           final isChecked =
                                               (currentLangName == 'english' &&
@@ -192,7 +199,7 @@ class ProfilePage extends StatelessWidget {
                                         children: options.map((c) {
                                           // user.currency holds canonical values like 'USD' or 'BIRR'
                                           final current =
-                                              (user?.currency ?? 'USD')
+                                              (user.currency ?? 'USD')
                                                   .toUpperCase();
                                           final isChecked =
                                               (current == 'USD' &&
@@ -225,6 +232,7 @@ class ProfilePage extends StatelessWidget {
                           ),
                           const Divider(height: 1),
                           SwitchRow(
+                            activeColor: const Color.fromARGB(255, 204, 174, 27),
                             title: getText('notifications'),
                             value: user?.notifications ?? true,
                             onChanged: (val) {
@@ -242,27 +250,25 @@ class ProfilePage extends StatelessWidget {
                               );
                             },
                           ),
+                        
+                          const Divider(height: 1),
+                          ThemeToggle(
+                            activeColor: Colors.black,
+                            title: getText('DarkMode'),
+                            value: isDark,
+                            onChanged: onDarkChanged,
+                          ),
                           const Divider(height: 1),
                         ],
                       ),
                     ),
                     const SizedBox(height: 12),
                     // Version card
-                    Container(
-                      decoration: cardDecoration(),
-                      child: const ListTile(
-                        title: Text('Version'),
-                        subtitle: Text('1.1.7'),
-                        trailing: Text(
-                          'UPDATE',
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      ),
-                    ),
+                    
                     const SizedBox(height: 12),
                     // Sign in / out action (UI only; uses existing bloc events)
                     Container(
-                      decoration: cardDecoration(),
+                      decoration: cardDecoration(context),
                       child: ListTile(
                         leading: Icon(
                           user != null ? Icons.logout : Icons.login,
