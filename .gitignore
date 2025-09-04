@@ -1,3 +1,4 @@
 /shopally-backend/configs/config.dev.yaml
 
 .env
+.vscode
