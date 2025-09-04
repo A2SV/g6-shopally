@@ -2,6 +2,14 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shopallymobile/auth_feature/data/model/user_model.dart';
 
+class SignInCancelledException implements Exception {
+  final String message;
+  SignInCancelledException(this.message);
+  
+  @override
+  String toString() => message;
+}
+
 abstract class RemoteDataSource {
   Future<UserModel> signinWithGoogle();
   Future<void> signout();
@@ -37,13 +45,14 @@ class RemoteDataSourceImpl implements RemoteDataSource {
     try {
       await _googleSignIn.signOut();
     } catch (e) {
-      throw e.toString();
+      // Ignore sign out errors
     }
 
     try {
       final GoogleSignInAccount? account = await _googleSignIn.signIn();
       if (account == null) {
-        throw Exception('Sign-in cancelled by user');
+        // User cancelled sign-in, return null or throw a specific cancellation exception
+        throw SignInCancelledException('Sign-in was cancelled');
       }
 
       await account.authentication;
@@ -53,7 +62,10 @@ class RemoteDataSourceImpl implements RemoteDataSource {
         photourl: account.photoUrl,
       );
     } catch (e) {
-      throw e.toString();
+      if (e is SignInCancelledException) {
+        rethrow;
+      }
+      throw Exception('Sign-in failed: ${e.toString()}');
     }
   }
 }

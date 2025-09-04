@@ -1,47 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:shopallymobile/auth_feature/data/datasource/localdatasource.dart';
-import 'package:shopallymobile/auth_feature/data/datasource/remotedatasource.dart';
-import 'package:shopallymobile/auth_feature/data/repositoryImpl/repositoryImpl.dart';
 import 'package:shopallymobile/auth_feature/domain/repositories/user_repo.dart';
 import 'package:shopallymobile/auth_feature/presentation/pages/profilepage.dart';
+import 'package:shopallymobile/core/di/service_locator.dart';
 import 'package:shopallymobile/core/localization/language_bloc.dart';
 import 'package:shopallymobile/core/localization/language_event.dart';
 import 'package:shopallymobile/core/localization/language_state.dart';
 import 'package:shopallymobile/core/localization/localization_store.dart';
-import 'package:shopallymobile/core/localization/translation_loader.dart';
+import 'package:shopallymobile/core/theme/theme_data.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final prefs = await SharedPreferences.getInstance();
+  // Initialize service locator
+  await initDependencies();
 
-  final userFeatureRepository = UserAuthRepositoryImpl(
-    remoteDataSource: RemoteDataSourceImpl(),
-    localDataSource: LocalDataSourceImpl(prefs),
-  );
   runApp(
     MultiRepositoryProvider(
       providers: [
-        RepositoryProvider<UserRepository>.value(value: userFeatureRepository),
+        // Provide repository from service locator to keep context.read working
+        RepositoryProvider<UserRepository>.value(value: sl<UserRepository>()),
       ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider<LanguageBloc>(
             create: (_) =>
-                LanguageBloc(TranslationLoader())
-                  ..add(LoadLanguageEvent(initialCode: null)),
+                sl<LanguageBloc>()..add(LoadLanguageEvent(initialCode: null)),
           ),
-        ],
-        child: const MyApp(),
+      ],
+      child: const MyApp(),
       ),
     ),
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  ThemeMode _themeMode = ThemeMode.light; // default: dark mode OFF
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +53,18 @@ class MyApp extends StatelessWidget {
         }
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          home: ProfilePage(userRepository: context.read<UserRepository>()),
+          theme: AppThemes.lightTheme,
+          darkTheme: AppThemes.darkTheme,
+          themeMode: _themeMode,
+          home: ProfilePage(
+            userRepository: sl<UserRepository>(),
+            isDark: _themeMode == ThemeMode.dark,
+            onDarkChanged: (val) {
+              setState(() {
+                _themeMode = val ? ThemeMode.dark : ThemeMode.light;
+              });
+            },
+          ),
         );
       },
     );

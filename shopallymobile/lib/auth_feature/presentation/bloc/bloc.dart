@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shopallymobile/auth_feature/data/datasource/remotedatasource.dart';
 import 'package:shopallymobile/auth_feature/domain/repositories/user_repo.dart';
 import 'package:shopallymobile/auth_feature/presentation/bloc/event.dart';
 import 'package:shopallymobile/auth_feature/presentation/bloc/state.dart';
@@ -12,7 +13,12 @@ class UserAuthBloc extends Bloc<UserAuthEvent, UserAuthState> {
         final user = await userRepositories.signinWithGoogle();
         emit(SuccessState(user: user));
       } catch (e) {
-        emit(ErrorState(message: e.toString()));
+        if (e is SignInCancelledException) {
+          // User cancelled sign-in, just return to initial state without showing error
+          emit(InitialState());
+        } else {
+          emit(ErrorState(message: e.toString()));
+        }
       }
     });
     on<SignOutEvent>((event, emit) async {

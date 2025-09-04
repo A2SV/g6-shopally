@@ -2,20 +2,13 @@ import 'package:shopallymobile/auth_feature/domain/entities/user.dart';
 
 class UserModel extends AuthUser {
   UserModel({
-    required String name,
-    required String email,
-    String? photourl,
-    String? language,
-    String? currency,
-    bool? notifications,
-  }) : super(
-         name: name,
-         email: email,
-         photourl: photourl,
-         language: language,
-         currency: currency,
-         notifications: notifications,
-       );
+    required super.name,
+    required super.email,
+    super.photourl,
+    super.language,
+    super.currency,
+    super.notifications,
+  });
 
   factory UserModel.fromjson(Map<String, dynamic> json) {
     return UserModel(

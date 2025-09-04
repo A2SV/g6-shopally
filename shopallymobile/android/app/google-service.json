@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "999033337399",
+    "project_id": "shopally-944a4",
+    "storage_bucket": "shopally-944a4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:999033337399:android:fab3e204ef04599cc131b2",
+        "android_client_info": {
+          "package_name": "com.example.shopallymobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_Ku4Pwhf1DdYxiwMgVbVOijpmuEfIlbU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
