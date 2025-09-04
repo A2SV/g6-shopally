@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shopally-ai/internal/contextkeys"
 	"github.com/shopally-ai/pkg/domain"
 	"github.com/shopally-ai/pkg/usecase"
 )
@@ -43,8 +44,8 @@ func (h *CompareHandler) CompareProducts(c *gin.Context) {
 		return
 	}
 
-	ctx = context.WithValue(ctx, "X-Device-ID", deviceID)
-	ctx = context.WithValue(ctx, "Accept-Language", lang)
+	ctx = context.WithValue(ctx, contextkeys.DeviceID, deviceID)
+	ctx = context.WithValue(ctx, contextkeys.RespLang, lang)
 
 	// Parse request body
 	var reqBody struct {

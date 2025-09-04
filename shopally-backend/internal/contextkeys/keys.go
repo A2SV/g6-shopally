@@ -9,4 +9,5 @@ type key string
 var (
 	RespLang     = key("Accept-Language")
 	RespCurrency = key("resp_currency")
+	DeviceID     = key("X-Device-ID")
 )
