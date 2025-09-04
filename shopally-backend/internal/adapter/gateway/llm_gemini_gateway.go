@@ -518,54 +518,64 @@ func (g *GeminiLLMGateway) SummarizeProduct(ctx context.Context, p *domain.Produ
 }
 
 func (g *GeminiLLMGateway) enhanceProductContent(ctx context.Context, p *domain.Product, userPrompt, lang string) (*domain.Product, error) {
-	prompt := fmt.Sprintf(`STRICT INSTRUCTIONS: OUTPUT ONLY RAW JSON, NO OTHER TEXT, NO EXPLANATIONS, NO CODE BLOCKS.
+	prompt := fmt.Sprintf(`STRICT INSTRUCTIONS: OUTPUT ONLY RAW JSON. 
+	NO explanations, NO extra text, NO markdown, NO code blocks. 
 
-You are an expert e-commerce product content enhancer and product relevance evaluator. Enhance the product text content and generate an AI-based match percentage.
+	You are an expert e-commerce product content enhancer and product relevance evaluator. 
+	Your tasks are: (1) evaluate product relevance to the user’s prompt, (2) enhance content if relevant.
 
-## USER'S ORIGINAL REQUEST: "%s"
+	======================================================================
+	## USER INPUT
+	- USER PROMPT: "%s"
+	- TARGET LANGUAGE: %s
 
-## LANGUAGE: %s
-- Enhance all text fields in %s
-- Use culturally appropriate, persuasive, and engaging language
+	======================================================================
+	## PRODUCT DATA
+	%s
 
-## PRODUCT DATA:
-%s
+	======================================================================
+	## DECISION LOGIC
+	1. First, evaluate RELEVANCE of this product to the USER PROMPT.
+	- If product is **irrelevant, misleading, or unrelated**, output only:
+		{ "removeProduct": true, "aiMatchPercentage": 0 }
+	- Do NOT attempt to enhance such products.
+	- Examples of irrelevance: wrong category, unrelated use-case, incorrect features, or major mismatch.
 
-## TASK:
-1. Enhance the following product fields:
-   - title
-   - description
-   - summaryBullets
-2. Generate a new field: aiMatchPercentage
-   - A number from 0 to 100
-   - Represents how well this product matches the user's prompt based on product details, features, quality, and relevance
-   - Higher values indicate better match
-3. Do NOT modify any other fields
-4. Ensure all numerical values, URLs, IDs remain unchanged
-5. Generate 3-5 short, punchy **summaryBullets** highlighting key benefits, features, and unique selling points
-6. Output **ONLY JSON**, strictly following the format below
+	2. If product is relevant:
+	- Enhance the following text fields ONLY:
+		- title
+		- description
+		- summaryBullets
+	- Ensure text is persuasive, engaging, culturally appropriate, and localized to the target language.
+	- Keep it concise but compelling, highlighting benefits and differentiators.
+	- Do NOT fabricate features, prices, URLs, or attributes that are not present in the input product data.
 
-## REQUIRED OUTPUT JSON FORMAT:
-{
-  "title": "string",
-  "description": "string",
-  "summaryBullets": ["string", ...],
-  "aiMatchPercentage": number  // 0 to 100
-}
+	3. Always generate a numerical score:
+	- aiMatchPercentage (0 to 100)
+	- Based on closeness to the user's prompt, product details, features, and quality.
+	- High match (>70): strong relevance
+	- Medium match (40–70): somewhat relevant but not perfect
+	- Low match (<30): not relevant → mark removeProduct=true
 
-## ADDITIONAL DATA TO CONSIDER:
-- product_video_url
-- lastest_volume
-- shop_name
-- promotion_link / promo_code_info
-- app_sale_price / target_sale_price
-- first_level_category_name / second_level_category_name
-- evaluate_rate (normalized product rating)
-- platform_product_type
-- hot_product_commission_rate
-- commission_rate
+	======================================================================
+	## OUTPUT RULES
+	- Strictly JSON only. No additional commentary.
+	- Keep numerical values, IDs, URLs, and other structured data unchanged.
+	- Enhanced fields must not contradict existing data.
+	- summaryBullets must contain 3–5 short, punchy points.
 
-OUTPUT:`, userPrompt, lang, lang, getProductJSONString(p))
+	======================================================================
+	## REQUIRED OUTPUT FORMAT
+	{
+	"title": "string",
+	"description": "string",
+	"summaryBullets": ["string", ...],
+	"aiMatchPercentage": number,   // 0–100
+	"removeProduct": bool          // true if not relevant
+	}
+	======================================================================
+
+	OUTPUT:`, userPrompt, lang, getProductJSONString(p))
 
 	log.Printf("Enhancing product content for language: %s", lang)
 
@@ -577,21 +587,40 @@ OUTPUT:`, userPrompt, lang, lang, getProductJSONString(p))
 	clean := extractStrictJSON(text)
 	log.Printf("Extracted enhanced product JSON: %s", clean)
 
-	// Parse the enhanced product
-	var enhancedProduct domain.Product
-	if err := json.Unmarshal([]byte(clean), &enhancedProduct); err != nil {
+	// Temporary struct to detect if product should be removed
+	type aiResponse struct {
+		Title          string   `json:"title"`
+		Description    string   `json:"description"`
+		SummaryBullets []string `json:"summaryBullets"`
+		AiMatchPercent int      `json:"aiMatchPercentage"`
+		RemoveProduct  bool     `json:"removeProduct"`
+	}
+
+	var resp aiResponse
+	if err := json.Unmarshal([]byte(clean), &resp); err != nil {
 		log.Printf("Failed to parse enhanced product JSON: %v", err)
 		return nil, err
 	}
 
-	// Ensure critical fields remain unchanged
+	// If AI determined product is irrelevant → skip it
+	if resp.RemoveProduct || resp.AiMatchPercent < 30 {
+		log.Printf("Product marked as irrelevant (aiMatchPercentage=%d). Removing...", resp.AiMatchPercent)
+		return nil, nil
+	}
+
+	// Build enhanced product
+	enhancedProduct := *p
+	enhancedProduct.Title = resp.Title
+	enhancedProduct.Description = resp.Description
+	enhancedProduct.SummaryBullets = resp.SummaryBullets
+	enhancedProduct.AIMatchPercentage = resp.AiMatchPercent
+
+	// Keep critical fields unchanged
 	enhancedProduct.ID = p.ID
 	enhancedProduct.ImageURL = p.ImageURL
 	enhancedProduct.Price = p.Price
 	enhancedProduct.ProductRating = p.ProductRating
-	enhancedProduct.SellerScore = p.SellerScore
 	enhancedProduct.DeliveryEstimate = p.DeliveryEstimate
-	enhancedProduct.NumberSold = p.NumberSold
 	enhancedProduct.DeeplinkURL = p.DeeplinkURL
 	enhancedProduct.TaxRate = p.TaxRate
 	enhancedProduct.Discount = p.Discount
@@ -608,10 +637,8 @@ func getProductJSONString(p *domain.Product) string {
 		"aiMatchPercentage": p.AIMatchPercentage,
 		"price":             p.Price,
 		"productRating":     p.ProductRating,
-		"sellerScore":       p.SellerScore,
 		"deliveryEstimate":  p.DeliveryEstimate,
 		"description":       p.Description,
-		"numberSold":        p.NumberSold,
 		"summaryBullets":    p.SummaryBullets,
 		"deeplinkUrl":       p.DeeplinkURL,
 		"taxRate":           p.TaxRate,
@@ -629,11 +656,9 @@ func (g *GeminiLLMGateway) createBasicEnhancedProduct(p *domain.Product, userPro
 		Title:            p.Title,
 		ImageURL:         p.ImageURL,
 		Price:            p.Price,
-		ProductRating:    p.ProductRating,
-		SellerScore:      p.SellerScore,
+		ProductRating:    p.ProductRating / 20,
 		DeliveryEstimate: p.DeliveryEstimate,
 		Description:      enhanceDescription(p.Description, lang),
-		NumberSold:       p.NumberSold,
 		SummaryBullets:   createSummaryBullets(p, lang),
 		DeeplinkURL:      p.DeeplinkURL,
 		TaxRate:          p.TaxRate,
@@ -652,16 +677,16 @@ func enhanceDescription(desc, lang string) string {
 func createSummaryBullets(p *domain.Product, lang string) []string {
 	if lang == "am" {
 		return []string{
-			"★ ከፍተኛ ጥራት ያለው ምርት",
-			"→ በደንበኞች የተወደደ",
-			"• አስተማማኝ አፈጻጸም",
-			"→ ዘመናዊ ዲዛይን",
+			"ከፍተኛ ጥራት ያለው ምርት",
+			"በደንበኞች የተወደደ",
+			"አስተማማኝ አፈጻጸም",
+			"ዘመናዊ ዲዛይን",
 		}
 	}
 	return []string{
-		"★ High-quality product construction",
-		"→ Customer favorite with great reviews",
-		"• Reliable performance and durability",
-		"→ Modern and user-friendly design",
+		"High-quality product construction",
+		"Customer favorite with great reviews",
+		"Reliable performance and durability",
+		"Modern and user-friendly design",
 	}
 }
