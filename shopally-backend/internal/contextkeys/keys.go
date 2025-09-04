@@ -7,6 +7,6 @@ type key string
 
 // Exported variables to be used as context keys across packages.
 var (
-	RespLang     = key("resp_language")
+	RespLang     = key("Accept-Language")
 	RespCurrency = key("resp_currency")
 )

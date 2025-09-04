@@ -44,15 +44,16 @@ func (rl *RateLimiter) Middleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := context.Background()
 		deviceID := c.GetHeader("X-Device-ID")
+		lang := c.GetHeader("Accept-Language")
 
-		if deviceID == "" {
+		if deviceID == "" || lang == "" {
 			c.JSON(
 				http.StatusBadRequest,
 				domain.Response{
 					Data: nil,
 					Error: map[string]interface{}{
 						"code":    http.StatusBadRequest,
-						"message": "Missing Device ID",
+						"message": "Missing required header: X-Device-ID or Accept-Language",
 					},
 				},
 			)
