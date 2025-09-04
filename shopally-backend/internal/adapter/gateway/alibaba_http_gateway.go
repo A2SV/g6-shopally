@@ -97,23 +97,24 @@ func MapAliExpressResponseToProducts(data []byte) ([]*domain.Product, error) {
 // MapAliExpressDetailResponseToProducts handles the response from aliexpress.affiliate.productdetail.get
 func MapAliExpressDetailResponseToProducts(data []byte) ([]*domain.Product, error) {
 	type aliProduct struct {
-		AppSalePrice               string `json:"app_sale_price"`
-		OriginalPrice              string `json:"original_price"`
-		ProductDetailURL           string `json:"product_detail_url"`
-		Discount                   string `json:"discount"`
-		ProductMainImageURL        string `json:"product_main_image_url"`
-		TaxRate                    string `json:"tax_rate"`
-		ProductID                  int64  `json:"product_id"`
-		ShipToDays                 string `json:"ship_to_days"`
-		EvaluateRate               string `json:"evaluate_rate"`
-		SalePrice                  string `json:"sale_price"`
-		ProductTitle               string `json:"product_title"`
-		TargetSalePrice            string `json:"target_sale_price"`
-		TargetAppSalePrice         string `json:"target_app_sale_price"`
-		ShopName                   string `json:"shop_name"`
-		TargetSalePriceCurrency    string `json:"target_sale_price_currency"`
-		TargetAppSalePriceCurrency string `json:"target_app_sale_price_currency"`
-		LastestVolume              int    `json:"lastest_volume"`
+		AppSalePrice               string   `json:"app_sale_price"`
+		OriginalPrice              string   `json:"original_price"`
+		ProductDetailURL           string   `json:"product_detail_url"`
+		Discount                   string   `json:"discount"`
+		ProductMainImageURL        string   `json:"product_main_image_url"`
+		TaxRate                    string   `json:"tax_rate"`
+		ProductID                  int64    `json:"product_id"`
+		ShipToDays                 string   `json:"ship_to_days"`
+		EvaluateRate               string   `json:"evaluate_rate"`
+		SalePrice                  string   `json:"sale_price"`
+		ProductTitle               string   `json:"product_title"`
+		TargetSalePrice            string   `json:"target_sale_price"`
+		TargetAppSalePrice         string   `json:"target_app_sale_price"`
+		ShopName                   string   `json:"shop_name"`
+		TargetSalePriceCurrency    string   `json:"target_sale_price_currency"`
+		ProductSmallImageURLs      []string `json:"product_small_image_urls"`
+		TargetAppSalePriceCurrency string   `json:"target_app_sale_price_currency"`
+		LastestVolume              int      `json:"lastest_volume"`
 	}
 
 	type detailResp struct {
@@ -150,15 +151,17 @@ func MapAliExpressDetailResponseToProducts(data []byte) ([]*domain.Product, erro
 			etb = 0
 		}
 		prod := &domain.Product{
-			ID:               strconv.FormatInt(p.ProductID, 10),
-			Title:            strings.TrimSpace(p.ProductTitle),
-			ImageURL:         strings.TrimSpace(p.ProductMainImageURL),
-			Price:            domain.Price{USD: usd, ETB: etb, FXTimestamp: time.Now().UTC()},
-			DeeplinkURL:      strings.TrimSpace(p.ProductDetailURL),
-			NumberSold:       p.LastestVolume,
-			Discount:         parsePercentOrZero(p.Discount),
-			ProductRating:    parsePercentOrZero(p.EvaluateRate),
-			DeliveryEstimate: strings.TrimSpace(p.ShipToDays),
+			ID:                    strconv.FormatInt(p.ProductID, 10),
+			Title:                 strings.TrimSpace(p.ProductTitle),
+			ImageURL:              strings.TrimSpace(p.ProductMainImageURL),
+			Price:                 domain.Price{USD: usd, ETB: etb, FXTimestamp: time.Now().UTC()},
+			DeeplinkURL:           strings.TrimSpace(p.ProductDetailURL),
+			TaxRate:               parseFloatOrZero(p.TaxRate),
+			ProductSmallImageURLs: p.ProductSmallImageURLs,
+			NumberSold:            p.LastestVolume,
+			Discount:              parsePercentOrZero(p.Discount),
+			ProductRating:         parsePercentOrZero(p.EvaluateRate) / 20, // Scale 0-100 to 0-5
+			DeliveryEstimate:      strings.TrimSpace(p.ShipToDays),
 		}
 		out = append(out, prod)
 	}
@@ -231,7 +234,8 @@ const mockAliExpressResponse = `{
 							"shop_id": 67890,
 							"lastest_volume": 5,
 							"commission_rate": "7.0%",
-							"target_app_sale_price_currency": "USD"
+							"target_app_sale_price_currency": "USD",
+							"product_small_image_urls": ["https://example.com/img1.jpg", "https://example.com/img2.jpg"]
 						}
 					]
 				}
@@ -256,14 +260,14 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, Keywords string,
 		"sign_method":     "sha256",
 		"keywords":        Keywords,
 		"page_no":         "1",         // Default page number
-		"page_size":       "5",         // Default page size
+		"page_size":       "20",        // Default page size
 		"target_currency": "USD",       // Default currency
 		"target_language": "en",        // Default language
 		"sort":            "relevancy", // Default sort order
 
 		// Define all fields we want to receive from the API.
 		// This list should reflect all fields in `aliProduct` that you want populated.
-		"fields": "product_id,product_title,product_main_image_url,product_detail_url,sale_price,app_sale_price,original_price,discount,evaluate_rate,tax_rate,target_sale_price,target_app_sale_price,shop_name,lastest_volume,ship_to_days,first_level_category_name,second_level_category_name",
+		"fields": "product_id,product_title,product_main_image_url,product_detail_url,sale_price,app_sale_price,original_price,discount,evaluate_rate,tax_rate,target_sale_price,target_app_sale_price,shop_name,lastest_volume,ship_to_days,first_level_category_name,second_level_category_name,product_small_image_urls",
 	}
 
 	// Apply overrides from the filters map
@@ -419,6 +423,11 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, Keywords string,
 	if err != nil {
 		log.Printf("[AlibabaGateway] mapping error from real API response: %v. Attempting mock fallback for development.", err)
 		return MapAliExpressResponseToProducts([]byte(mockAliExpressResponse))
+	}
+	log.Println("***************************************************************")
+	log.Println("***************** AliExpress Products Retrieved *****************")
+	for productIndex, p := range prods {
+		log.Println(productIndex, p.ProductSmallImageURLs)
 	}
 	return prods, nil
 }

@@ -111,6 +111,25 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 		wg.Wait()
 	}
 
+	// discarte nil products if any
+	cleaned := make([]*domain.Product, 0, len(products))
+	for _, p := range products {
+		if p != nil {
+			if !p.RemoveProduct && p.AIMatchPercentage > 30 {
+				cleaned = append(cleaned, p)
+			}
+		}
+	}
+
+	// Sort product list by AI match percentage descending
+	sort.SliceStable(cleaned, func(i, j int) bool {
+		return cleaned[i].AIMatchPercentage > cleaned[j].AIMatchPercentage
+	})
+
+	products = cleaned
+
+	log.Println("SearchProductsUseCase: summarized products for query:", query)
+
 	// Return the envelope-compatible data payload
 	return map[string]interface{}{"products": products}, nil
 }
