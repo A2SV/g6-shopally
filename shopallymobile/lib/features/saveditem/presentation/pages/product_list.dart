@@ -1,45 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:shopallymobile/features/saveditem/presentation/pages/detail_page.dart';
-import 'package:shopallymobile/features/saveditem/presentation/widgets/productlist/buttom_nav.dart';
+import 'package:shopallymobile/features/saveditem/presentation/pages/savedpage.dart';
 import 'package:shopallymobile/features/saveditem/presentation/widgets/productlist/product_info.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/bloc/saved_product_bloc.dart';
 
-import '../../domain/entities/product_entity.dart';
-import '../pages/products_list_page.dart';
-
-class ProductLinkBox extends StatefulWidget {
-  final String text;
-  final List<ProductEntity> products;
-  const ProductLinkBox({super.key, required this.products, required this.text});
+class ProductListPage extends StatefulWidget {
+  const ProductListPage({super.key});
 
   @override
-  State<ProductLinkBox> createState() => _ProductLinkBoxState();
+  State<ProductListPage> createState() => _ProductListPageState();
 }
 
-class _ProductLinkBoxState extends State<ProductLinkBox> {
-  String cut(String text) {
-    if (text.length > 30) {
-      return '${text.substring(0, 30)}...';
-    }
-    return text;
-  }
-  final List<ProductEntity> _savedItems = [];
-
+class _ProductListPageState extends State<ProductListPage> {
+  final List<dynamic> _savedItems = List.generate(5, (index) => 'Item $index');
+  @override
   void initState() {
     super.initState();
-    _savedItems.addAll(widget.products);
+    context.read<SavedProductBloc>().add(LoadSavedProductsEvent());
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        // Navigator.of(context).push(
-        //   MaterialPageRoute(
-        //     builder: (_) => ,
-        //   ),
-        // );
-     
-              showModalBottomSheet(
+    return Scaffold(
+      appBar: AppBar(title: const Text('Product List')),
+      body: Center(
+        child: Column(
+          children: [
+            ElevatedButton(onPressed: (){
+              Navigator.push(context, MaterialPageRoute(builder: (context) => Savedpage()));
+            },
+            child: Text("SavedPage")),
+            // ElevatedButton(onPressed: (){
+            //   Navigator.push(context, MaterialPageRoute(builder: (context) => Demo()));
+            // },
+            // child: Text("Demo")),
+
+
+        ElevatedButton(
+          child: const Text('Show Modal'),
+          onPressed: () {
+            showModalBottomSheet(
               context: context,
               isScrollControlled: true,
               builder: (BuildContext context) {
@@ -150,11 +151,12 @@ class _ProductLinkBoxState extends State<ProductLinkBox> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => DetailPage(item: item),
+                              
                             ),
                           );
                         },
-
-                        child: ProductInfo(id: item.id , title: item.productName,image: item.imageUrl , price: item.price, rating: (item.rating /20).roundToDouble(),),
+                  
+                        child: ProductInfo(id: index.toString()),
                       );
                     }, childCount: _savedItems.length),
                   ),
@@ -178,63 +180,10 @@ class _ProductLinkBoxState extends State<ProductLinkBox> {
                 );
               },
             );
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        margin: EdgeInsets.symmetric(horizontal: 16.0),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.white, Colors.grey.shade300],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            transform: GradientRotation(0.5),
-          ),
-          borderRadius: BorderRadius.all(Radius.circular(12.0)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 8.0,
-              offset: Offset(0, 2),
-            ),
-          ],
+          },
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.link, color: Colors.blue),
-                    const SizedBox(width: 8.0),
-                    Text(
-                      'Product search',
-                      style: TextStyle(
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.w400,
-                        color: const Color.fromARGB(221, 78, 77, 77),
-                        fontFamily: 'Arial',
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 4.0),
-                Text(
-                  cut(widget.text),
-                  style: TextStyle(
-                    fontSize: 14.0,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: 'Arial',
-                  ),
-                ),
-              ],
-            ),
-            Icon(Icons.arrow_forward_ios, color: Colors.black, size: 16.0),
-          ],
-        ),
+      ]
+      ),
       ),
     );
   }

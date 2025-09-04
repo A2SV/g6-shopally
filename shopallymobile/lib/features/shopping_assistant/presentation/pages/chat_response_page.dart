@@ -130,7 +130,7 @@ class _ChatResponsePageState extends State<ChatResponsePage> {
       appBar: AppBar(
         backgroundColor: AppColors.backgroundTop,
         leading: BackButton(
-          onPressed: () => Navigator.pushReplacementNamed(context, '/chat'),
+          onPressed: () => Navigator.pushNamed(context, '/chat'),
         ),
         title: const Center(child: Text('Chat')),
       ),

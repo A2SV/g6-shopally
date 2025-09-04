@@ -26,7 +26,7 @@ class ProductRepositoryImpl implements ProductRepository {
           .toList();
       return Right(products);
     } catch (e) {
-      return Left(Failure('Failed to fetch products: $e'));
+      return Left(ServerFailure(message: 'Failed to fetch products: $e'));
     }
   }
 }

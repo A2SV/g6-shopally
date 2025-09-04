@@ -1,20 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shopallymobile/features/saveditem/presentation/bloc/bloc/saved_product_bloc.dart';
 
 import 'features/shopping_assistant/presentation/bloc/chat_bloc.dart';
 import 'features/shopping_assistant/presentation/pages/chat_page.dart';
 import 'features/shopping_assistant/presentation/pages/chat_response_page.dart';
 import 'injection_container.dart' as di;
+import 'injuction_container.dart' as di1;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await di.init();
+  await di1.init();
 
   final ChatBloc chatBloc = di.sl<ChatBloc>();
+  final SavedProductBloc savedProductBloc = di1.sl<SavedProductBloc>();
 
   runApp(
-    BlocProvider<ChatBloc>.value(
-      value: chatBloc,
+    MultiBlocProvider(
+      providers: [
+        BlocProvider<ChatBloc>.value(value: chatBloc),
+        BlocProvider<SavedProductBloc>.value(value: savedProductBloc),
+      ],
       child: const ShopAllyApp(),
     ),
   );
