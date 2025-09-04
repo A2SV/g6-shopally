@@ -42,10 +42,12 @@ func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails [
 		return nil, fmt.Errorf("failed to marshal products: %w", err)
 	}
 
-	lang, _ := ctx.Value(contextkeys.RespLang).(string)
+	lang, _ := ctx.Value("Accept-Language").(string)
 	if lang == "" {
 		lang = "en"
 	}
+
+	log.Println("CompareProducts: calling LLM with", len(productDetails), "products in lang:", lang)
 
 	// Extract delivery info from first product for the prompt
 	deliveryInfo := "varies"
@@ -346,7 +348,7 @@ OUTPUT:`, normalizedQuery)
 
 	log.Printf("[%s] Sending multi-language JSON prompt to LLM", requestID)
 
-	text, err := g.call(ctx, prompt)
+	text, err := g.call(context.TODO(), prompt)
 	if err != nil {
 		return nil, err
 	}

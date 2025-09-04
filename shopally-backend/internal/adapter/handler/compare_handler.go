@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopally-ai/internal/contextkeys"
@@ -23,75 +24,70 @@ func NewCompareHandler(uc usecase.CompareProductsExecutor) *CompareHandler {
 	}
 }
 
-// CompareProducts is the Gin handler for POST /compare.
 func (h *CompareHandler) CompareProducts(c *gin.Context) {
-	// Require Accept-Language
+	// Derive a context with timeout from the incoming request
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 20*time.Second)
+	defer cancel()
+
+	// Extract headers and attach them as values to the context
+	deviceID := strings.TrimSpace(c.GetHeader("X-Device-ID"))
 	lang := strings.ToLower(strings.TrimSpace(c.GetHeader("Accept-Language")))
 
-	ctx := c.Request.Context()
-	if lang == "am" {
-		ctx = context.WithValue(ctx, contextkeys.RespLang, "am")
-		ctx = context.WithValue(ctx, contextkeys.RespCurrency, "ETB")
-	} else {
-		ctx = context.WithValue(ctx, contextkeys.RespLang, "en")
-		ctx = context.WithValue(ctx, contextkeys.RespCurrency, "USD")
-	}
-
-	if lang == "" {
+	if deviceID == "" || lang == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"data": nil,
 			"error": gin.H{
 				"code":    "INVALID_INPUT",
-				"message": "Missing required header: Accept-Language",
+				"message": "Missing required headers: X-Device-ID or Accept-Language",
 			},
 		})
 		return
 	}
 
-	var requestBody struct {
+	ctx = context.WithValue(ctx, contextkeys.DeviceID, deviceID)
+	ctx = context.WithValue(ctx, contextkeys.RespLang, lang)
+
+	// Parse request body
+	var reqBody struct {
 		Products []*domain.Product `json:"products"`
 	}
-
-	// Parse JSON body
-	if err := c.ShouldBindJSON(&requestBody); err != nil {
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"data": nil,
 			"error": gin.H{
 				"code":    "INVALID_INPUT",
-				"message": "Invalid request body. Ensure it is valid JSON.",
+				"message": "Invalid JSON body",
 			},
 		})
 		return
 	}
 
-	// Validate number of products
-	if len(requestBody.Products) < 2 || len(requestBody.Products) > 4 {
+	// Validate product count
+	if len(reqBody.Products) < 2 || len(reqBody.Products) > 4 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"data": nil,
 			"error": gin.H{
 				"code":    "INVALID_INPUT",
-				"message": "Request body must contain a 'products' array with 2 to 4 product objects.",
+				"message": "Products array must contain 2 to 4 items",
 			},
 		})
 		return
 	}
 
-	// Attach language to context (support 'am' for Amharic, else default to 'en')
-	// Execute use case
-
-	comparisonResult, err := h.compareUseCase.Execute(ctx, requestBody.Products)
+	// Pass the timeout-aware, header-enriched context to the use case
+	comparisonResult, err := h.compareUseCase.Execute(ctx, reqBody.Products)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"data": nil,
 			"error": gin.H{
 				"code":    "INTERNAL_SERVER_ERROR",
-				"message": "An error occurred while comparing products.",
+				"message": err.Error(), // or a friendly message
 			},
 		})
 		return
 	}
 
-	// Success
+	// Success response
 	c.JSON(http.StatusOK, gin.H{
 		"data":  comparisonResult,
 		"error": nil,
