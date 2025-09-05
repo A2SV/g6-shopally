@@ -1,4 +1,4 @@
-package main
+package worker
 
 import (
 	"context"
@@ -16,7 +16,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func main() {
+func WorkerStart() {
+	log.Println("Starting background worker...")
 	cfg, err := config.LoadConfig(".")
 	if err != nil {
 		log.Fatalf("config: %v", err)

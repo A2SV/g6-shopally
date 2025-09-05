@@ -8,6 +8,7 @@ import (
 
 	"github.com/shopally-ai/cmd/api/middleware"
 	"github.com/shopally-ai/cmd/api/router"
+	"github.com/shopally-ai/cmd/worker"
 	"github.com/shopally-ai/internal/adapter/gateway"
 	"github.com/shopally-ai/internal/adapter/handler"
 	repo "github.com/shopally-ai/internal/adapter/repository"
@@ -59,6 +60,8 @@ func main() {
 		time.Duration(cfg.RateLimit.Window)*time.Second,
 		false, // Add TLS flag
 	)
+
+	go worker.WorkerStart()
 
 	// FX client (provider defaults to exchangerate.host if not configured)
 	fxInner := gateway.NewFXHTTPGateway("", "", nil)
