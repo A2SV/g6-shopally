@@ -26,7 +26,7 @@ func NewCompareHandler(uc usecase.CompareProductsExecutor) *CompareHandler {
 
 func (h *CompareHandler) CompareProducts(c *gin.Context) {
 	// Derive a context with timeout from the incoming request
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 120*time.Second)
 	defer cancel()
 
 	// Extract headers and attach them as values to the context
@@ -81,7 +81,7 @@ func (h *CompareHandler) CompareProducts(c *gin.Context) {
 			"data": nil,
 			"error": gin.H{
 				"code":    "INTERNAL_SERVER_ERROR",
-				"message": err.Error(), // or a friendly message
+				"message": err.Error(),
 			},
 		})
 		return

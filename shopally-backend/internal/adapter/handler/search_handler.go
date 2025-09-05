@@ -51,7 +51,7 @@ func (h *SearchHandler) Search(c *gin.Context) {
 
 	data, err := h.uc.Search(ctx, q)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, envelope{Data: nil, Error: map[string]interface{}{
+		c.JSON(http.StatusInternalServerError, envelope{Data: data, Error: map[string]interface{}{
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": err.Error(),
 		}})
