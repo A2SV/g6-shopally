@@ -100,7 +100,6 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 				// Get the original product and user prompt from context if available
 				userPrompt := query
 
-				// Get enhanced product with all details
 				enhancedProduct, err := uc.llmGateway.SummarizeProduct(ctx, products[index], userPrompt)
 				if err == nil && enhancedProduct != nil {
 					// Replace the entire product with enhanced version
@@ -113,10 +112,13 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 
 	// discarte nil products if any
 	cleaned := make([]*domain.Product, 0, len(products))
+	uncleaned := []*domain.Product{}
 	for _, p := range products {
 		if p != nil {
 			if !p.RemoveProduct && p.AIMatchPercentage > 30 {
 				cleaned = append(cleaned, p)
+			} else {
+				uncleaned = append(uncleaned, p)
 			}
 		}
 	}
@@ -125,6 +127,10 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 	sort.SliceStable(cleaned, func(i, j int) bool {
 		return cleaned[i].AIMatchPercentage > cleaned[j].AIMatchPercentage
 	})
+
+	if len(cleaned) == 0 {
+		cleaned = uncleaned // fallback to uncleaned if all were removed
+	}
 
 	products = cleaned
 

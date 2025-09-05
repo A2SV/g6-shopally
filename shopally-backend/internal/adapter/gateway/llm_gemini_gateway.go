@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -19,10 +18,10 @@ import (
 
 // GeminiLLMGateway implements domain.LLMGateway using Google Generative Language API (Gemini).
 type GeminiLLMGateway struct {
-	apiKey   string
-	modelURL string
-	client   *http.Client
-	fx       domain.IFXClient
+	tokenManager *util.TokenManager
+	modelURL     string
+	client       *http.Client
+	fx           domain.IFXClient
 }
 
 // CompareProducts implements domain.LLMGateway.
@@ -42,12 +41,11 @@ func (g *GeminiLLMGateway) CompareProducts(ctx context.Context, productDetails [
 		return nil, fmt.Errorf("failed to marshal products: %w", err)
 	}
 
-	lang, _ := ctx.Value("Accept-Language").(string)
+	log.Println("CompareProducts: calling LLM with", len(productDetails), "products in lang:", ctx.Value(contextkeys.RespLang).(string))
+	lang, _ := ctx.Value(contextkeys.RespLang).(string)
 	if lang == "" {
 		lang = "en"
 	}
-
-	log.Println("CompareProducts: calling LLM with", len(productDetails), "products in lang:", lang)
 
 	// Extract delivery info from first product for the prompt
 	deliveryInfo := "varies"
@@ -147,7 +145,7 @@ PRODUCTS DATA:
 %s`, len(productDetails), len(productDetails), len(productDetails), deliveryInfo, len(productDetails), lang, string(b))
 
 	// Call LLM
-	text, err := g.call(ctx, prompt)
+	text, err := g.call(context.Background(), prompt)
 	log.Println("LLM comparison error:", err)
 
 	if err != nil {
@@ -171,23 +169,23 @@ PRODUCTS DATA:
 }
 
 // NewGeminiLLMGateway creates a new gateway using the GEMINI_API_KEY from env if apiKey is empty.
-func NewGeminiLLMGateway(apiKey string, fx domain.IFXClient) domain.LLMGateway {
-	if apiKey == "" {
-		apiKey = os.Getenv("GEMINI_API_KEY")
-	}
+func NewGeminiLLMGateway(tm *util.TokenManager, fx domain.IFXClient) domain.LLMGateway {
 
 	return &GeminiLLMGateway{
-		apiKey:   apiKey,
-		modelURL: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
-		client:   &http.Client{Timeout: 12 * time.Second},
-		fx:       fx,
+		tokenManager: tm,
+		modelURL:     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+		client:       &http.Client{Timeout: 12 * time.Second},
+		fx:           fx,
 	}
 }
 
 func (g *GeminiLLMGateway) call(ctx context.Context, prompt string) (string, error) {
-	if g.apiKey == "" {
-		return "", errors.New("missing GEMINI_API_KEY")
+	// tokenManager must be initialized with at least one token
+	if g.tokenManager == nil {
+		return "", errors.New("no Gemini API keys available")
 	}
+	token := g.tokenManager.GetNextToken()
+
 	reqBody := domain.GeminiRequest{
 		Contents: []struct {
 			Parts []struct {
@@ -200,7 +198,7 @@ func (g *GeminiLLMGateway) call(ctx context.Context, prompt string) (string, err
 		},
 	}
 	b, _ := json.Marshal(reqBody)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, g.modelURL+"?key="+g.apiKey, bytes.NewReader(b))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, g.modelURL+"?key="+token, bytes.NewReader(b))
 	if err != nil {
 		return "", err
 	}
@@ -513,7 +511,7 @@ func (g *GeminiLLMGateway) SummarizeProduct(ctx context.Context, p *domain.Produ
 	if err != nil {
 		// If enhancement fails, return the original product with basic enhancements
 		log.Printf("Product enhancement failed, returning original product: %v", err)
-		return g.createBasicEnhancedProduct(p, userPrompt, lang), nil
+		return g.createBasicEnhancedProduct(p, lang), nil
 	}
 
 	return enhancedProduct, nil
@@ -579,15 +577,12 @@ func (g *GeminiLLMGateway) enhanceProductContent(ctx context.Context, p *domain.
 
 	OUTPUT:`, userPrompt, lang, getProductJSONString(p))
 
-	log.Printf("Enhancing product content for language: %s", lang)
-
 	text, err := g.call(ctx, prompt)
 	if err != nil {
 		return nil, err
 	}
 
 	clean := extractStrictJSON(text)
-	log.Printf("Extracted enhanced product JSON: %s", clean)
 
 	// Temporary struct to detect if product should be removed
 	type aiResponse struct {
@@ -652,7 +647,7 @@ func getProductJSONString(p *domain.Product) string {
 }
 
 // createBasicEnhancedProduct creates enhanced content without LLM
-func (g *GeminiLLMGateway) createBasicEnhancedProduct(p *domain.Product, userPrompt, lang string) *domain.Product {
+func (g *GeminiLLMGateway) createBasicEnhancedProduct(p *domain.Product, lang string) *domain.Product {
 	enhanced := &domain.Product{
 		ID:               p.ID,
 		Title:            p.Title,
@@ -661,7 +656,7 @@ func (g *GeminiLLMGateway) createBasicEnhancedProduct(p *domain.Product, userPro
 		ProductRating:    p.ProductRating / 20,
 		DeliveryEstimate: p.DeliveryEstimate,
 		Description:      enhanceDescription(p.Description, lang),
-		SummaryBullets:   createSummaryBullets(p, lang),
+		SummaryBullets:   createSummaryBullets(lang),
 		DeeplinkURL:      p.DeeplinkURL,
 		TaxRate:          p.TaxRate,
 		Discount:         p.Discount,
@@ -676,7 +671,7 @@ func enhanceDescription(desc, lang string) string {
 	return "This high-quality product is known for its excellent performance and customer satisfaction. It features durable construction and reliable functionality that users appreciate. The product has received positive feedback for its consistent delivery on promises and overall value."
 }
 
-func createSummaryBullets(p *domain.Product, lang string) []string {
+func createSummaryBullets(lang string) []string {
 	if lang == "am" {
 		return []string{
 			"ከፍተኛ ጥራት ያለው ምርት",

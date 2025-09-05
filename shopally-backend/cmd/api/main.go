@@ -25,8 +25,6 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	log.Printf("Configuration loaded: %+v\n", cfg)
-
 	// Connect to MongoDB using custom db package
 	client, err := platform.Connect(cfg.Mongo.URI)
 	if err != nil {
@@ -74,7 +72,10 @@ func main() {
 	}
 
 	// Choose LLM implementation
-	lg := gateway.NewGeminiLLMGateway(cfg.Gemini.APIKey, fxClient)
+	tm := util.NewTokenManager()
+	tm.InitializeTokens()
+
+	lg := gateway.NewGeminiLLMGateway(tm, fxClient)
 
 	// Alibaba gateway: use HTTP gateway (real) and pass configuration
 	// If you want to force the mock gateway for local development, replace

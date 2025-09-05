@@ -424,11 +424,7 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, Keywords string,
 		log.Printf("[AlibabaGateway] mapping error from real API response: %v. Attempting mock fallback for development.", err)
 		return MapAliExpressResponseToProducts([]byte(mockAliExpressResponse))
 	}
-	log.Println("***************************************************************")
-	log.Println("***************** AliExpress Products Retrieved *****************")
-	for productIndex, p := range prods {
-		log.Println(productIndex, p.ProductSmallImageURLs)
-	}
+
 	return prods, nil
 }
 
