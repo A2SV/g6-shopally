@@ -1,48 +1,32 @@
-//src/providers/ThemeProvider.tsx
-
 "use client";
-
-import { ThemeProvider, useTheme } from "next-themes";
-import { useEffect } from "react";
-
-function ThemeManager({ children }: { children: React.ReactNode }) {
-  const { resolvedTheme } = useTheme();
-
-  useEffect(() => {
-    const html = document.documentElement;
-    console.log("ThemeManager: resolvedTheme =", resolvedTheme);
-
-    // Remove all theme classes first
-    html.classList.remove("light", "dark");
-
-    if (resolvedTheme === "dark") {
-      html.classList.add("dark");
-      console.log("ThemeManager: Added 'dark' class");
-    } else {
-      // For light mode or undefined, no class needed (default Tailwind behavior)
-      console.log("ThemeManager: Light mode - no class added");
-    }
-
-    console.log("ThemeManager: Final HTML class =", html.className);
-    console.log(
-      "ThemeManager: HTML element classes:",
-      html.classList.toString()
-    );
-  }, [resolvedTheme]);
-
-  return <>{children}</>;
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import * as React from "react";
+export function ThemeProvider({
+  children,
+  ...props
+}: React.ComponentProps<typeof NextThemesProvider>) {
+  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
 }
-
-export function ThemeProviders({ children }: { children: React.ReactNode }) {
+// src/app/components/ThemeToggle.tsx
+("use client");
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="dark"
-      enableSystem={false}
-      disableTransitionOnChange={false}
-      storageKey="shopally-theme"
+    <button
+      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+      className="flex items-center justify-center lg:justify-start gap-2 lg:gap-3 px-2 py-2 lg:px-3 lg:py-2 rounded-md w-full transition-colors bg-brand-white hover:bg-brand-yellow text-brand-yellow hover:text-brand-dark border border-gray-300 "
+      aria-label="Toggle Theme"
     >
-      <ThemeManager>{children}</ThemeManager>
-    </ThemeProvider>
+      {theme === "light" ? (
+        <Sun className="w-5 h-5" />
+      ) : (
+        <Moon className="w-5 h-5" />
+      )}
+      <span className="hidden lg:block">
+        {theme === "light" ? "Light Mode" : "Dark Mode"}
+      </span>
+    </button>
   );
 }

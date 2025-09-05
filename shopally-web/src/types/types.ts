@@ -122,6 +122,7 @@ export type SavedItemUI = SavedItem & {
   checked: string;
   priceAlertOn: boolean;
   placeholderText: string;
+  alertId?: string; // ID of the associated alert, if any
 };
 
 export interface SavedSearch {

@@ -2,6 +2,7 @@
 "use client";
 
 import type { Product, SavedItem } from "@/types/types";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface ProductCardProps {
   product: Product;
@@ -16,6 +17,7 @@ export default function ProductCard({
   saveItem,
   removeItem,
 }: ProductCardProps) {
+  const { t } = useLanguage();
   const isSaved = savedItems.some((i) => i.id === product.id);
 
   return (
@@ -40,7 +42,7 @@ export default function ProductCard({
         disabled={isSaved}
         onClick={() => saveItem(product)}
       >
-        {isSaved ? "Saved" : "Save Item"}
+        {isSaved ? t("Saved") : t("Save Item")}
       </button>
     </div>
   );

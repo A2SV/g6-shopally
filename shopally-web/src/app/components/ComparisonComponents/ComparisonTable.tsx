@@ -2,45 +2,73 @@
 import type { ComparisonItem } from "@/types/Compare/Comparison";
 import { FC } from "react";
 import { IoIosStar } from "react-icons/io";
+import { useDarkMode } from "@/app/components/ProfileComponents/DarkModeContext";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface ComparisonTableProps {
   comparison: ComparisonItem[];
 }
 
 export const ComparisonTable: FC<ComparisonTableProps> = ({ comparison }) => {
+  const { isDarkMode } = useDarkMode();
+  const { t } = useLanguage();
+
   if (!comparison || comparison.length === 0) return null;
 
   return (
-    <div className="overflow-x-auto bg-white rounded-2xl border border-gray-200 shadow-lg">
-      <div className="p-5">
-        <h1 className="text-[#090c11] font-bold">Detailed Comparison</h1>
+    <div
+      className="overflow-x-auto rounded-xl sm:rounded-2xl border shadow-lg transition-colors"
+      style={{
+        backgroundColor: "var(--color-bg-card)",
+        borderColor: "var(--color-border-primary)",
+        boxShadow: "var(--color-shadow)",
+      }}
+    >
+      <div className="p-3 sm:p-4 lg:p-5">
+        <h1
+          className="text-sm sm:text-base font-bold transition-colors"
+          style={{ color: "var(--color-text-primary)" }}
+        >
+          {t("Detailed Comparison")}
+        </h1>
       </div>
-      <table className="w-full text-left border-collapse min-w-[600px]">
+      <table className="w-full text-left border-collapse min-w-[400px] sm:min-w-[600px]">
         <thead>
-          <tr className="bg-white">
-            <th className="px-4 py-3 text-sm font-semibold text-[#262b32]">
-              Feature
+          <tr style={{ backgroundColor: "var(--color-bg-secondary)" }}>
+            <th
+              className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-colors"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {t("Feature")}
             </th>
             {comparison.map((c) => (
               <th
                 key={c.product.id}
-                className="px-4 py-3 text-sm font-semibold text-[#262b32] text-center"
+                className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-center transition-colors"
+                style={{ color: "var(--color-text-primary)" }}
               >
                 {c.product.title}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
+        <tbody
+          className="divide-y transition-colors"
+          style={{ borderColor: "var(--color-border-secondary)" }}
+        >
           {/* Price */}
           <tr>
-            <td className="px-4 py-3 text-sm font-semibold text-[#262b32]">
-              Price (USD)
+            <td
+              className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-colors"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {t("Price (USD)")}
             </td>
             {comparison.map((c) => (
               <td
                 key={c.product.id}
-                className="px-4 py-3 text-center text-gray-600"
+                className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-center text-xs sm:text-sm transition-colors"
+                style={{ color: "var(--color-text-secondary)" }}
               >
                 ${c.product.price.usd}
               </td>
@@ -49,17 +77,24 @@ export const ComparisonTable: FC<ComparisonTableProps> = ({ comparison }) => {
 
           {/* Rating */}
           <tr>
-            <td className="px-4 py-3 text-sm font-semibold text-[#262b32]">
-              Rating
+            <td
+              className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-colors"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {t("Rating")}
             </td>
             {comparison.map((c) => (
               <td
                 key={c.product.id}
-                className="px-4 py-3 text-center text-gray-600"
+                className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-center text-xs sm:text-sm transition-colors"
+                style={{ color: "var(--color-text-secondary)" }}
               >
                 <div className="flex items-center justify-center gap-1">
                   {c.product.productRating}
-                  <IoIosStar className="w-4 h-4 fill-[#090c11]" />
+                  <IoIosStar
+                    className="w-3 h-3 sm:w-4 sm:h-4 transition-colors"
+                    style={{ fill: "var(--color-text-primary)" }}
+                  />
                 </div>
               </td>
             ))}
@@ -67,13 +102,17 @@ export const ComparisonTable: FC<ComparisonTableProps> = ({ comparison }) => {
 
           {/* Delivery Estimate */}
           <tr>
-            <td className="px-4 py-3 text-sm font-semibold text-[#262b32]">
-              Delivery Estimate
+            <td
+              className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-colors"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {t("Delivery Estimate")}
             </td>
             {comparison.map((c) => (
               <td
                 key={c.product.id}
-                className="px-4 py-3 text-center text-gray-600"
+                className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-center text-xs sm:text-sm transition-colors"
+                style={{ color: "var(--color-text-secondary)" }}
               >
                 {c.product.deliveryEstimate}
               </td>
@@ -82,13 +121,17 @@ export const ComparisonTable: FC<ComparisonTableProps> = ({ comparison }) => {
 
           {/* Seller Score */}
           <tr>
-            <td className="px-4 py-3 text-sm font-semibold text-[#262b32]">
-              Seller Score
+            <td
+              className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold transition-colors"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {t("Seller Score")}
             </td>
             {comparison.map((c) => (
               <td
                 key={c.product.id}
-                className="px-4 py-3 text-center text-gray-600"
+                className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-center text-xs sm:text-sm transition-colors"
+                style={{ color: "var(--color-text-secondary)" }}
               >
                 {c.product.sellerScore}
               </td>

@@ -1,17 +1,22 @@
 // shopally-web/src/app/components/saved-items/SavedItemCard.tsx
 "use client";
 
-import { useDarkMode } from "@/app/components/saved-items/DarkModeContext";
+import { useDarkMode } from "@/app/components/ProfileComponents/DarkModeContext";
 import ToggleSwitch from "@/app/components/saved-items/ToggleSwitch";
+import { useLanguage } from "@/hooks/useLanguage";
 import { Trash2 } from "lucide-react";
 import { SavedItemUI } from "../../../types/types";
-import Rating from "./Rating";
 
 // Extend SavedItemUI with optional callbacks
 interface SavedItemCardProps extends SavedItemUI {
   onRemove?: (id: string) => void;
   onUpdatePrice?: (id: string, price: SavedItemUI["price"]) => void;
   onToggleAlert?: (id: string) => void;
+  onPlaceOrder?: (
+    productId: string,
+    productTitle: string,
+    price: SavedItemUI["price"]
+  ) => void;
 }
 
 export default function SavedItemCard({
@@ -29,19 +34,26 @@ export default function SavedItemCard({
   onRemove,
   onUpdatePrice,
   onToggleAlert,
+  onPlaceOrder,
 }: SavedItemCardProps) {
   const { isDarkMode } = useDarkMode();
+  const { t } = useLanguage();
 
   return (
     <div
-      className={`rounded-xl shadow border overflow-hidden mb-8 transition-colors ${
+      className={`rounded-2xl border shadow p-6 space-y-6 w-full max-w-md mx-auto sm:max-w-none transition-colors ${
         isDarkMode
           ? "bg-gray-800 border-gray-700 text-white"
           : "bg-white border-gray-200 text-gray-900"
       }`}
+      style={{
+        backgroundColor: "var(--color-bg-card)",
+        borderColor: "var(--color-border-primary)",
+        boxShadow: "var(--color-shadow)",
+      }}
     >
       {/* Image container */}
-      <div className="relative w-full h-44 bg-gray-200 flex items-center justify-center text-3xl font-bold text-gray-400">
+      <div className="aspect-square rounded-xl overflow-hidden transition-colors bg-gray-200 relative">
         <img
           src={imageUrl}
           alt={title}
@@ -50,70 +62,118 @@ export default function SavedItemCard({
 
         {/* Price Alert badge */}
         <div className="absolute top-2 left-2 bg-[#FFD300] text-white text-xs font-medium px-2 py-1 rounded-full shadow">
-          Price Alert
+          {t("Price Alert")}
         </div>
 
         {/* Delete button */}
         <button
-          className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full p-2 shadow"
+          className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg transition-colors"
           onClick={() => onRemove?.(id)}
+          title="Delete item"
         >
-          <Trash2 className="w-5 h-5 text-black" />
+          <Trash2 className="w-5 h-5" />
         </button>
       </div>
 
       {/* Body */}
-      <div className="p-5">
-        <h2 className="text-lg font-semibold mb-2">{title}</h2>
+      <div className="space-y-4">
+        <h3
+          className="text-lg font-semibold transition-colors cursor-pointer"
+          style={{ color: "var(--color-text-primary)" }}
+          title={title} // full title on hover
+        >
+          {title.split(" ").slice(0, 5).join(" ")}
+          {title.split(" ").length > 5 ? " ..." : ""}
+        </h3>
 
-        {/* Rating */}
-        <Rating value={rating} count={ratingCount} />
-
-        {/* Price */}
-        <div className="flex items-center gap-2 mt-2">
-          <p className="text-xl font-bold">
+        <div className="flex items-center justify-between">
+          <span
+            className="text-2xl font-bold transition-colors"
+            style={{ color: "var(--color-accent-primary)" }}
+          >
             {price.etb
-              ? `${price.etb} ETB`
+              ? `${Number(price.etb).toFixed(2)} ETB`
               : price.usd
-              ? `$${price.usd}`
+              ? `$${Number(price.usd).toFixed(2)}`
               : "N/A"}
-          </p>
-          {oldPrice && (
-            <span className="line-through text-gray-400 text-sm">
-              {typeof oldPrice === "object"
-                ? oldPrice.etb
-                  ? `${oldPrice.etb} ETB`
-                  : `$${oldPrice.usd}`
-                : oldPrice}
+          </span>
+          <div
+            className="flex items-center gap-1 text-sm transition-colors"
+            style={{ color: "var(--color-text-tertiary)" }}
+          >
+            <span>⭐</span>
+            <span>
+              {rating} ({ratingCount})
             </span>
-          )}
+          </div>
         </div>
 
-        <p className="text-xs text-gray-500 mt-1">Checked {checked} ago</p>
+        {/* Key Features */}
+        <div className="space-y-3">
+          <h4
+            className="text-sm font-medium transition-colors"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            {t("Key Features")}
+          </h4>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              <span
+                className="text-sm transition-colors"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                {t("High quality product")}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span
+                className="text-sm transition-colors"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                {t("Fast shipping available")}
+              </span>
+            </div>
+          </div>
+        </div>
 
-        {/* Toggle */}
-        <div className="flex items-center mt-3">
-          <span className="text-sm font-medium mr-2 text-gray-500">
-            Price Alert
+        {/* Price Alert Toggle */}
+        <div className="flex items-center justify-between">
+          <span
+            className="text-sm font-medium transition-colors"
+            style={{ color: "var(--color-text-secondary)" }}
+          >
+            {t("Price Alert")}
           </span>
           <ToggleSwitch
-            checked={priceAlertOn} // controlled
+            checked={priceAlertOn}
             onChange={() => onToggleAlert?.(id)}
           />
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 mt-4">
-          <button className="flex-1 px-4 py-2 rounded-lg bg-[#0D2A4B] text-white hover:bg-[#133864] transition">
-            Buy on AliExpress
-          </button>
-          <button className="px-4 py-2 rounded-lg border text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-            Compare
+        <div className="flex gap-3">
+          <button
+            className="flex-1 font-medium py-3 px-6 rounded-xl hover:opacity-80 transition-colors"
+            style={{
+              backgroundColor: "var(--color-accent-primary)",
+              color: "var(--color-text-button)",
+            }}
+            onClick={() => onPlaceOrder?.(id, title, price)}
+          >
+            {t("Buy on AliExpress")}
           </button>
         </div>
 
-        {/* Seller */}
-        <p className="text-xs text-gray-500 mt-3">Sold by {seller}</p>
+        {/* Additional Info */}
+        <div className="text-xs text-gray-500 space-y-1">
+          <p>
+            {t("Checked")} {checked} {t("ago")}
+          </p>
+          <p>
+            {t("Sold by")} {seller}
+          </p>
+        </div>
       </div>
     </div>
   );

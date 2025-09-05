@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useDarkMode } from "./DarkModeContext";
-import { useLanguage } from "../../../hooks/useLanguage"
+import { useLanguage } from "../../../hooks/useLanguage";
 import { LoadingSpinner } from "../LoadingSpinner";
+import { useSession } from "next-auth/react";
 
 export default function ProfileContent() {
   const [selectedCategories, setSelectedCategories] = useState([
@@ -20,14 +21,12 @@ export default function ProfileContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [userData, setUserData] = useState({
-    fullName: "John Doe",
-    email: "john.doe@email.com",
-    password: "**********",
+    fullName: "",
+    email: "",
   });
   const [originalUserData, setOriginalUserData] = useState({
-    fullName: "John Doe",
-    email: "john.doe@email.com",
-    password: "**********",
+    fullName: "",
+    email: "",
   });
   const [showMessage, setShowMessage] = useState<{
     type: "success" | "info" | "error" | null;
@@ -36,6 +35,20 @@ export default function ProfileContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isDarkMode } = useDarkMode();
   const { t } = useLanguage();
+  const { data: session } = useSession();
+
+  // Initialize user data from session
+  useEffect(() => {
+    if (session?.user) {
+      const userInfo = {
+        fullName: session.user.name || "",
+        email: session.user.email || "",
+      };
+      setUserData(userInfo);
+      setOriginalUserData(userInfo);
+      setProfileImage(session.user.image || null);
+    }
+  }, [session]);
 
   // Simulate loading on component mount
   useEffect(() => {
@@ -140,8 +153,7 @@ export default function ProfileContent() {
     // Check if anything has changed
     const hasChanges =
       userData.fullName !== originalUserData.fullName ||
-      userData.email !== originalUserData.email ||
-      userData.password !== originalUserData.password;
+      userData.email !== originalUserData.email;
 
     if (!hasChanges) {
       setShowMessage({
@@ -195,17 +207,18 @@ export default function ProfileContent() {
   if (isLoading) {
     return (
       <div
-        className={`flex-1 transition-colors ${
-          isDarkMode ? "bg-[var(--color-brand-dark)]" : "bg-gray-50"
-        }`}
+        className="flex-1 transition-colors"
+        style={{
+          backgroundColor: "var(--color-bg-primary)",
+        }}
       >
         <div className="space-y-6 sm:space-y-8">
           <div
-            className={`rounded-lg shadow-sm border p-4 sm:p-6 transition-colors ${
-              isDarkMode
-                ? "bg-gray-800/20 border-gray-700"
-                : "bg-[var(--color-brand-white)] border-gray-200"
-            }`}
+            className="rounded-lg shadow-sm border p-4 sm:p-6 transition-colors"
+            style={{
+              backgroundColor: "var(--color-bg-card)",
+              borderColor: "var(--color-border-primary)",
+            }}
           >
             <div className="flex items-center justify-center py-12">
               <LoadingSpinner size="xl" color="yellow" />
@@ -218,31 +231,34 @@ export default function ProfileContent() {
 
   return (
     <div
-      className={`flex-1 transition-colors ${
-        isDarkMode ? "bg-[var(--color-brand-dark)]" : "bg-gray-50"
-      }`}
+      className="flex-1 transition-colors"
+      style={{
+        backgroundColor: "var(--color-bg-primary)",
+      }}
     >
       <div className="space-y-6 sm:space-y-8">
         {/* User Information Card */}
         <div
-          className={`rounded-lg shadow-sm border p-4 sm:p-6 transition-colors ${
-            isDarkMode
-              ? "bg-gray-800/20 border-gray-700"
-              : "bg-[var(--color-brand-white)] border-gray-200"
-          }`}
+          className="rounded-lg shadow-sm border p-4 sm:p-6 transition-colors"
+          style={{
+            backgroundColor: "var(--color-bg-card)",
+            borderColor: "var(--color-border-primary)",
+          }}
         >
           <div className="flex items-center justify-between mb-6">
             <h2
-              className={`text-lg sm:text-xl font-semibold transition-colors ${
-                isDarkMode ? "text-[var(--color-brand-white)]" : "text-gray-900"
-              }`}
+              className="text-lg sm:text-xl font-semibold transition-colors"
+              style={{ color: "var(--color-text-primary)" }}
             >
               {t("User Information")}
             </h2>
             {!isEditing ? (
               <button
                 onClick={handleEditToggle}
-                className="flex items-center gap-2 text-[var(--color-brand-yellow)] hover:text-[#E6BE00] font-medium"
+                className="flex items-center gap-2 font-medium hover:opacity-80 transition-colors"
+                style={{
+                  color: "var(--color-accent-primary)",
+                }}
               >
                 <svg
                   className={`w-4 h-4 transition-colors ${
@@ -258,7 +274,11 @@ export default function ProfileContent() {
             ) : (
               <button
                 onClick={handleCancelEdit}
-                className="px-3 py-1 bg-gray-500 text-[var(--color-brand-white)] font-medium rounded-md hover:bg-gray-600 transition-colors text-sm"
+                className="px-3 py-1 font-medium rounded-md hover:opacity-80 transition-colors text-sm"
+                style={{
+                  backgroundColor: "var(--color-bg-tertiary)",
+                  color: "var(--color-text-primary)",
+                }}
               >
                 {t("Cancel")}
               </button>
@@ -284,7 +304,10 @@ export default function ProfileContent() {
             {/* Avatar */}
             <div className="flex justify-center">
               <div className="relative">
-                <div className="w-20 h-20 bg-[var(--color-brand-yellow)] rounded-full flex items-center justify-center overflow-hidden">
+                <div
+                  className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden"
+                  style={{ backgroundColor: "var(--color-accent-primary)" }}
+                >
                   {profileImage ? (
                     <img
                       src={profileImage}
@@ -292,7 +315,18 @@ export default function ProfileContent() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-2xl font-bold text-gray-900">JD</span>
+                    <span
+                      className="text-2xl font-bold"
+                      style={{ color: "var(--color-text-button)" }}
+                    >
+                      {userData.fullName
+                        ? userData.fullName
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                        : "U"}
+                    </span>
                   )}
                 </div>
                 <button
@@ -330,9 +364,8 @@ export default function ProfileContent() {
             <div className="space-y-3 sm:space-y-4">
               <div>
                 <label
-                  className={`block text-sm font-medium mb-1 transition-colors ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}
+                  className="block text-sm font-medium mb-1 transition-colors"
+                  style={{ color: "var(--color-text-secondary)" }}
                 >
                   {t("Full Name")}
                 </label>
@@ -344,20 +377,22 @@ export default function ProfileContent() {
                   }
                   disabled={!isEditing}
                   className={`w-full px-3 py-2 border rounded-md transition-colors ${
-                    isDarkMode
-                      ? isEditing
-                        ? "border-gray-600 bg-[var(--color-brand-white)] text-gray-900"
-                        : "border-gray-600 bg-[var(--color-brand-dark)] text-[var(--color-brand-white)]"
-                      : "border-gray-300 bg-gray-50 text-gray-900"
-                  } ${!isEditing ? "cursor-not-allowed" : "cursor-text"}`}
+                    !isEditing ? "cursor-not-allowed" : "cursor-text"
+                  }`}
+                  style={{
+                    borderColor: "var(--color-border-primary)",
+                    backgroundColor: isEditing
+                      ? "var(--color-bg-input)"
+                      : "var(--color-bg-tertiary)",
+                    color: "var(--color-text-primary)",
+                  }}
                 />
               </div>
 
               <div>
                 <label
-                  className={`block text-sm font-medium mb-1 transition-colors ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}
+                  className="block text-sm font-medium mb-1 transition-colors"
+                  style={{ color: "var(--color-text-secondary)" }}
                 >
                   {t("Email Address")}
                 </label>
@@ -367,59 +402,47 @@ export default function ProfileContent() {
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   disabled={!isEditing}
                   className={`w-full px-3 py-2 border rounded-md transition-colors ${
-                    isDarkMode
-                      ? isEditing
-                        ? "border-gray-600 bg-[var(--color-brand-white)] text-gray-900"
-                        : "border-gray-600 bg-[var(--color-brand-dark)] text-[var(--color-brand-white)]"
-                      : "border-gray-300 bg-gray-50 text-gray-900"
-                  } ${!isEditing ? "cursor-not-allowed" : "cursor-text"}`}
+                    !isEditing ? "cursor-not-allowed" : "cursor-text"
+                  }`}
+                  style={{
+                    borderColor: "var(--color-border-primary)",
+                    backgroundColor: isEditing
+                      ? "var(--color-bg-input)"
+                      : "var(--color-bg-tertiary)",
+                    color: "var(--color-text-primary)",
+                  }}
                 />
               </div>
 
-              <div>
-                <label
-                  className={`block text-sm font-medium mb-1 transition-colors ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  {t("Password")}
-                </label>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <input
-                    type="password"
-                    value={userData.password}
-                    onChange={(e) =>
-                      handleInputChange("password", e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className={`flex-1 px-3 py-2 border rounded-md transition-colors ${
-                      isDarkMode
-                        ? isEditing
-                          ? "border-gray-600 bg-[var(--color-brand-white)] text-gray-900"
-                          : "border-gray-600 bg-[var(--color-brand-dark)] text-[var(--color-brand-white)]"
-                        : "border-gray-300 bg-gray-50 text-gray-900"
-                    } ${!isEditing ? "cursor-not-allowed" : "cursor-text"}`}
-                  />
+              {/* Save Changes Button */}
+              {isEditing && (
+                <div className="pt-4">
                   <button
                     onClick={handleSaveChanges}
-                    disabled={!isEditing || isSaving}
-                    className={`px-4 py-2 font-medium rounded-md transition-colors ${
-                      isEditing && !isSaving
-                        ? "bg-[var(--color-brand-yellow)] text-gray-900 hover:bg-[#E6BE00]"
-                        : "bg-[#f8df63] text-gray-500 cursor-not-allowed"
+                    disabled={isSaving}
+                    className={`w-full font-semibold py-3 px-6 rounded-lg transition-all duration-200 ${
+                      isSaving
+                        ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                        : "hover:opacity-80"
                     }`}
+                    style={{
+                      backgroundColor: isSaving
+                        ? "var(--color-text-muted)"
+                        : "var(--color-accent-primary)",
+                      color: "var(--color-text-button)",
+                    }}
                   >
                     {isSaving ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-center gap-2">
                         <LoadingSpinner size="sm" color="gray" />
                         {t("Saving...")}
                       </div>
                     ) : (
-                      t("Change")
+                      t("Save Changes")
                     )}
                   </button>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

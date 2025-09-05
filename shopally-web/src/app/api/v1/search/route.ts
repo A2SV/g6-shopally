@@ -1,4 +1,5 @@
 //src/app/api/products/route.ts
+import { getLanguage } from "@/lib/redux/languageBridge";
 import { ProductResponse } from "@/types/types";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -21,12 +22,14 @@ export async function POST(
       );
     }
 
+    const langCode = getLanguage() || "en-US";
+
     const backendRes = await fetch(`${API_BASE}/api/products/search`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Device-ID": deviceId,
-        "Accept-Language": "en-US", // TODO: make dynamic later
+        "Accept-Language": langCode, // TODO: make dynamic later
       },
       body: JSON.stringify({ query, priceMaxETB, minRating }),
     });

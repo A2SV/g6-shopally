@@ -1,53 +1,41 @@
 "use client";
 
-import ProfileLayout from "@/app/components/ProfileComponents/ProfileLayout";
-import Sidebar from "@/app/components/Sidebar";
 import ProfileContent from "@/app/components/ProfileComponents/ProfileContent";
 import ProfileStats from "@/app/components/ProfileComponents/ProfileStats";
-import {
-  DarkModeProvider,
-  useDarkMode,
-} from "@/app/components/ProfileComponents/DarkModeContext";
+import { useDarkMode } from "@/app/components/ProfileComponents/DarkModeContext";
 import { useLanguage } from "@/hooks/useLanguage";
-import { LanguageProvider } from "@/providers/LanguageProvider";
 
-function ProfilePageContent() {
+export default function ProfilePage() {
   const { isDarkMode } = useDarkMode();
   const { t } = useLanguage();
 
   return (
-    <ProfileLayout>
-      <Sidebar activePage="profile" />
-      <div className="flex-1 flex flex-col p-4 lg:p-8">
-        {/* Page Title */}
-        <h1
-          className={`text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 transition-colors ${
-            isDarkMode ? "text-white" : "text-gray-900"
-          }`}
-        >
-          {t("Profile Settings")}
-        </h1>
+    <div
+      className="min-h-screen flex flex-col p-4 lg:p-8 transition-colors"
+      style={{
+        backgroundColor: "var(--color-bg-primary)",
+        color: "var(--color-text-primary)",
+      }}
+    >
+      {/* Page Title */}
+      <h1
+        className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 transition-colors"
+        style={{ color: "var(--color-text-primary)" }}
+      >
+        {t("Profile Settings")}
+      </h1>
 
-        {/* Cards Container */}
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
-          <div className="flex-1">
-            <ProfileContent />
-          </div>
-          <div className="flex-1">
-            <ProfileStats />
-          </div>
+      {/* Cards Container */}
+      <div className="flex flex-col xl:flex-row gap-4 sm:gap-6 lg:gap-8">
+        {/* User Information and Personalization - Always on top on mobile */}
+        <div className="flex-1 order-1">
+          <ProfileContent />
+        </div>
+        {/* Account Statistics - Below on mobile, right side on desktop */}
+        <div className="flex-1 order-2 xl:order-2">
+          <ProfileStats />
         </div>
       </div>
-    </ProfileLayout>
-  );
-}
-
-export default function ProfilePage() {
-  return (
-    <LanguageProvider>
-      <DarkModeProvider>
-        <ProfilePageContent />
-      </DarkModeProvider>
-    </LanguageProvider>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useDarkMode } from "./ProfileComponents/DarkModeContext";
 import { useLanguage } from "../../hooks/useLanguage";
 
@@ -12,7 +11,6 @@ interface SidebarProps {
 export default function Sidebar({ activePage = "profile" }: SidebarProps) {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const { currentLanguage, switchLanguage, t } = useLanguage();
-  const router = useRouter();
 
   const navigationItems = [
     {
@@ -46,7 +44,7 @@ export default function Sidebar({ activePage = "profile" }: SidebarProps) {
     {
       id: "compare",
       label: t("Compare"),
-      path: "/compare",
+      path: "/comparison",
       icon: (
         <svg
           className="w-4 h-4 lg:w-5 lg:h-5"
@@ -119,32 +117,42 @@ export default function Sidebar({ activePage = "profile" }: SidebarProps) {
 
   return (
     <div
-      className={`w-16 lg:w-64 border-r flex flex-col transition-colors ${
-        isDarkMode
-          ? "bg-gray-800/20 border-gray-700"
-          : "bg-[var(--color-brand-white)] border-gray-200"
-      }`}
+      className="fixed left-0 top-0 h-screen w-16 lg:w-64 border-r flex flex-col transition-colors z-50"
+      style={{
+        backgroundColor: isDarkMode
+          ? "var(--color-bg-secondary)"
+          : "var(--color-bg-primary)",
+        borderColor: isDarkMode
+          ? "var(--color-border-primary)"
+          : "var(--color-border-primary)",
+      }}
     >
       {/* Brand Header */}
       <div
-        className={`p-3 lg:p-6 border-b transition-colors ${
-          isDarkMode ? "border-gray-700" : "border-gray-200"
-        }`}
+        className="p-3 lg:p-6 border-b transition-colors"
+        style={{
+          borderColor: "var(--color-border-primary)",
+        }}
       >
         <div className="flex items-center justify-center lg:justify-start gap-2">
           <div className="w-6 h-6 lg:w-8 lg:h-8 bg-[var(--color-brand-yellow)] rounded flex items-center justify-center">
-            <Image
-              src="/WebsiteLogo/Frame.png"
+            <img
+              src="WebsiteLogo/Frame.png"
               alt="ShopAlly Logo"
-              width={24}
-              height={24}
               className="object-contain w-4 h-4 lg:w-5 lg:h-5"
+              onError={(e) => {
+                // Fallback to text if image fails to load
+                e.currentTarget.style.display = "none";
+                const fallback = document.createElement("span");
+                fallback.textContent = "S";
+                fallback.className = "text-black font-bold text-sm";
+                e.currentTarget.parentNode?.appendChild(fallback);
+              }}
             />
           </div>
           <span
-            className={`text-xl font-bold transition-colors hidden lg:block ${
-              isDarkMode ? "text-white" : "text-gray-900"
-            }`}
+            className="text-xl font-bold transition-colors hidden lg:block"
+            style={{ color: "var(--color-text-primary)" }}
           >
             ShopAlly
           </span>
@@ -156,37 +164,41 @@ export default function Sidebar({ activePage = "profile" }: SidebarProps) {
         <ul className="space-y-1 lg:space-y-2">
           {navigationItems.map((item) => (
             <li key={item.id}>
-              <button
-                onClick={() => router.push(item.path)}
+              <Link
+                href={item.path}
                 className={`flex items-center justify-center lg:justify-start gap-2 lg:gap-3 px-2 py-2 lg:px-3 lg:py-2 rounded-md transition-colors w-full ${
-                  activePage === item.id
-                    ? "bg-[var(--color-brand-yellow)] text-gray-900 font-medium"
-                    : isDarkMode
-                    ? "text-gray-300 hover:bg-[#0000001A]"
-                    : "text-gray-700 hover:bg-gray-100"
+                  activePage === item.id ? "font-medium" : "hover:opacity-80"
                 }`}
+                style={{
+                  backgroundColor:
+                    activePage === item.id
+                      ? "var(--color-accent-primary)"
+                      : "transparent",
+                  color:
+                    activePage === item.id
+                      ? "var(--color-text-button)"
+                      : "var(--color-text-secondary)",
+                }}
               >
                 {item.icon}
                 <span className="hidden lg:block">{item.label}</span>
-              </button>
+              </Link>
             </li>
           ))}
 
           {/* Language Switch */}
           <li
-            className={`mt-4 lg:mt-8 pt-2 lg:pt-4 border-t transition-colors ${
-              isDarkMode ? "border-gray-700" : "border-gray-200"
-            }`}
+            className="mt-4 lg:mt-8 pt-2 lg:pt-4 border-t transition-colors"
+            style={{
+              borderColor: "var(--color-border-primary)",
+            }}
           >
             <button
               onClick={switchLanguage}
-              className={`flex items-center justify-center lg:justify-start gap-2 lg:gap-3 px-2 py-2 lg:px-3 lg:py-2 rounded-md w-full transition-colors ${
-                activePage === languageItem.id
-                  ? "bg-[var(--color-brand-yellow)] text-gray-900 font-medium"
-                  : isDarkMode
-                  ? "text-gray-300 hover:bg-[#0000001A]"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
+              className="flex items-center justify-center lg:justify-start gap-2 lg:gap-3 px-2 py-2 lg:px-3 lg:py-2 rounded-md w-full transition-colors hover:opacity-80"
+              style={{
+                color: "var(--color-text-secondary)",
+              }}
             >
               {languageItem.icon}
               <span className="hidden lg:block">{languageItem.label}</span>
@@ -197,11 +209,13 @@ export default function Sidebar({ activePage = "profile" }: SidebarProps) {
           <li className="mt-2 lg:mt-4">
             <button
               onClick={toggleDarkMode}
-              className={`flex items-center justify-center lg:justify-start gap-2 lg:gap-3 px-2 py-2 lg:px-3 lg:py-2 rounded-md w-full transition-colors ${
-                isDarkMode
-                  ? "bg-[#0000001A] text-white hover:bg-[#00000033]"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
+              className="flex items-center justify-center lg:justify-start gap-2 lg:gap-3 px-2 py-2 lg:px-3 lg:py-2 rounded-md w-full transition-colors hover:opacity-80"
+              style={{
+                backgroundColor: isDarkMode
+                  ? "var(--color-overlay)"
+                  : "transparent",
+                color: "var(--color-text-secondary)",
+              }}
             >
               <svg
                 className="w-4 h-4 lg:w-5 lg:h-5"

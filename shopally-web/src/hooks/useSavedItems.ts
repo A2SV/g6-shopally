@@ -1,13 +1,23 @@
-// shopally-web/src/hooks/useSavedItems.ts
+// src/hooks/useSavedItems.ts
 "use client";
 
+import {
+  useCreateAlertMutation,
+  useDeleteAlertMutation,
+} from "@/lib/redux/api/userApiSlice";
+import { AlertCreateResponse } from "@/types/SavedItems/AlertCreateResponse";
 import type { SavedItem, SavedItemUI } from "@/types/types";
 import { useCallback, useEffect, useState } from "react";
 
 const LOCAL_DB_KEY = "itemsList";
+const ORDERS_DB_KEY = "ordersList";
 
-interface LocalDb {
-  savedItems: SavedItem[];
+interface Order {
+  id: string;
+  productId: string;
+  productTitle: string;
+  price: { etb: number; usd: number; fxTimestamp: string };
+  orderDate: string;
 }
 
 const loadLocalDb = (): { savedItems: SavedItemUI[] } => {
@@ -23,9 +33,22 @@ const loadLocalDb = (): { savedItems: SavedItemUI[] } => {
 
 export const useSavedItems = (maxItems = 50) => {
   const [savedItems, setSavedItems] = useState<SavedItemUI[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  const [createAlert] = useCreateAlertMutation();
+  const [deleteAlert] = useDeleteAlertMutation();
 
   useEffect(() => {
     setSavedItems(loadLocalDb().savedItems);
+
+    if (typeof window !== "undefined") {
+      try {
+        const savedOrders = localStorage.getItem(ORDERS_DB_KEY);
+        if (savedOrders) setOrders(JSON.parse(savedOrders));
+      } catch {
+        setOrders([]);
+      }
+    }
   }, []);
 
   const saveItem = useCallback((item: SavedItem) => {
@@ -38,13 +61,11 @@ export const useSavedItems = (maxItems = 50) => {
         oldPrice: prevItem?.oldPrice,
         seller: prevItem?.seller || "Unknown",
         checked: prevItem?.checked || "N/A",
-        priceAlertOn: prevItem?.priceAlertOn ?? false, // make sure boolean
+        priceAlertOn: prevItem?.priceAlertOn ?? false,
         placeholderText: "IMG",
       };
 
-      let newList = prev.filter((i) => i.id !== item.id);
-      newList.push(uiItem);
-
+      const newList = [...prev.filter((i) => i.id !== item.id), uiItem];
       localStorage.setItem(
         LOCAL_DB_KEY,
         JSON.stringify({ savedItems: newList })
@@ -83,20 +104,132 @@ export const useSavedItems = (maxItems = 50) => {
     []
   );
 
-  const alertChange = useCallback((itemId: string) => {
-    setSavedItems((prev) => {
-      const newList = prev.map((item) =>
-        item.id === itemId
-          ? { ...item, priceAlertOn: !item.priceAlertOn }
-          : item
+  const alertChange = useCallback(
+    async (itemId: string) => {
+      console.log("🚀 alertChange called for itemId:", itemId);
+
+      const item = savedItems.find((i) => i.id === itemId);
+      if (!item) {
+        console.log("⚠️ Item not found in state");
+        return;
+      }
+
+      console.log("Current item state:", item);
+
+      const newStatus = !item.priceAlertOn;
+      console.log("New toggle status will be:", newStatus);
+
+      // Optimistic UI update
+      setSavedItems((prev) =>
+        prev.map((i) =>
+          i.id === itemId ? { ...i, priceAlertOn: newStatus } : i
+        )
       );
-      localStorage.setItem(
-        LOCAL_DB_KEY,
-        JSON.stringify({ savedItems: newList })
-      );
-      return newList;
-    });
-  }, []);
+      console.log("✅ Optimistic UI update done");
+
+      try {
+        if (newStatus) {
+          // TURN ON
+          console.log("Turning ON alert...");
+
+          const deviceId =
+            typeof window !== "undefined"
+              ? localStorage.getItem("deviceId") || "default-device"
+              : "default-device";
+
+          console.log("Using deviceId:", deviceId);
+
+          const res: AlertCreateResponse = await createAlert({
+            productId: item.id,
+            deviceId,
+            currentPriceETB: item.price.etb,
+          }).unwrap();
+
+          const alertId = res.data?.data?.alertId;
+          console.log("Alert created successfully:", res);
+          console.log("alertId from response:", alertId);
+
+          if (alertId) {
+            setSavedItems((prev) => {
+              const newList = prev.map((i) =>
+                i.id === itemId ? { ...i, priceAlertOn: true, alertId } : i
+              );
+              localStorage.setItem(
+                LOCAL_DB_KEY,
+                JSON.stringify({ savedItems: newList })
+              );
+              console.log(
+                "LocalStorage updated after creating alert:",
+                newList
+              );
+              return newList;
+            });
+          } else {
+            console.warn("⚠️ No alertId returned from createAlert API");
+          }
+        } else {
+          // TURN OFF
+          console.log("Turning OFF alert...");
+          const alertId = item.alertId;
+          console.log("Current alertId:", alertId);
+
+          if (!alertId) {
+            console.log("⚠️ No alertId found, skipping DELETE request");
+            return;
+          }
+
+          const res = await deleteAlert({ id: alertId }).unwrap();
+          console.log("Alert deleted successfully:", res);
+
+          setSavedItems((prev) => {
+            const newList = prev.map((i) =>
+              i.id === itemId
+                ? { ...i, priceAlertOn: false, alertId: undefined }
+                : i
+            );
+            localStorage.setItem(
+              LOCAL_DB_KEY,
+              JSON.stringify({ savedItems: newList })
+            );
+            console.log("LocalStorage updated after deleting alert:", newList);
+            return newList;
+          });
+        }
+      } catch (err) {
+        console.error("Alert API failed:", err);
+        // revert UI
+        setSavedItems((prev) =>
+          prev.map((i) =>
+            i.id === itemId ? { ...i, priceAlertOn: item.priceAlertOn } : i
+          )
+        );
+      }
+    },
+    [savedItems, createAlert, deleteAlert]
+  );
+
+  const placeOrder = useCallback(
+    (
+      productId: string,
+      productTitle: string,
+      price: { etb: number; usd: number; fxTimestamp: string }
+    ) => {
+      const newOrder: Order = {
+        id: `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        productId,
+        productTitle,
+        price,
+        orderDate: new Date().toISOString(),
+      };
+
+      setOrders((prev) => {
+        const newOrders = [...prev, newOrder];
+        localStorage.setItem(ORDERS_DB_KEY, JSON.stringify(newOrders));
+        return newOrders;
+      });
+    },
+    []
+  );
 
   const clearAll = useCallback(() => {
     setSavedItems([]);
@@ -105,10 +238,12 @@ export const useSavedItems = (maxItems = 50) => {
 
   return {
     savedItems,
+    orders,
     saveItem,
     removeItem,
     alertChange,
     updateItemPrice,
+    placeOrder,
     clearAll,
   };
 };

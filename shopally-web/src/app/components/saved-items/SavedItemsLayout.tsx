@@ -1,6 +1,6 @@
 "use client";
 
-import { useDarkMode } from "@/app/components/saved-items/DarkModeContext";
+import { useDarkMode } from "@/app/components/ProfileComponents/DarkModeContext";
 import OfflineAlert from "@/app/components/saved-items/OfflineAlert";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import React from "react";

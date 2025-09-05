@@ -1,0 +1,15 @@
+// tsconfig.server.json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2020",
+    "esModuleInterop": true,
+    "strict": true,
+    "outDir": "dist-server",
+    "rootDir": ".", // important to avoid nested dirs
+    "noEmit": false // ensure this overrides base tsconfig
+  },
+  "include": ["mock-alerts-server.ts"]
+}

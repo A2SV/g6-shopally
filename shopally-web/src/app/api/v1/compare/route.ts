@@ -1,3 +1,4 @@
+import { getLanguage } from "@/lib/redux/languageBridge";
 import { ComparisonResponse } from "@/types/Compare/Comparison";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -36,12 +37,14 @@ export async function POST(
       );
     }
 
+    const langCode = getLanguage() || "en-US";
+
     const backendRes = await fetch(`${API_BASE}/api/compare`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Device-ID": deviceId,
-        "Accept-Language": acceptLanguage,
+        "Accept-Language": langCode,
       },
       body: JSON.stringify({ products }),
     });
