@@ -11,7 +11,7 @@ import 'package:shopallymobile/features/saveditem/presentation/widgets/savedpage
 import 'package:shopallymobile/core/constants/const_color.dart';
 import 'package:shopallymobile/features/saveditem/presentation/widgets/savedpagewidget/rating.dart';
 import 'package:shopallymobile/features/shopping_assistant/domain/entities/product_entity.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 class ProductInfo extends StatefulWidget {
   final String id;
   final String title;
@@ -42,6 +42,15 @@ class ProductInfo extends StatefulWidget {
 class _ProductInfoState extends State<ProductInfo> {
   late Color _iconColor;
   bool isSaved = false;
+  void openWebLink(String url) async {
+    final Uri uri = Uri.parse(url);
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
 
   @override
   void initState() {
@@ -195,7 +204,15 @@ class _ProductInfoState extends State<ProductInfo> {
                                             ),
                                           ),
                                         ),
-                                        onPressed: () {},
+                                        onPressed: () async{
+                                          final Uri url = Uri.parse(widget.item.deeplinkUrl);
+                                          debugPrint('Launching URL: $url');
+                                          if (await canLaunchUrl(url)) {
+                                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                                            } else {
+                                              debugPrint('Could not launch $url');
+                                            }
+                                        },
                                         child: Text(
                                           'Buy On AliExpress',
                                           textAlign: TextAlign.center,

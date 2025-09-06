@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/ui_constants.dart';
 import '../../domain/entities/product_entity.dart';
@@ -112,12 +113,16 @@ class _ChatResponsePageState extends State<ChatResponsePage> {
       children: [
         const SizedBox(height: 12),
         _responseBox('I am searching for $query related content for you...'),
-        const SizedBox(height: 12),
-        ProductLinkBox(products: list, text: query),
-        const SizedBox(height: 12),
-        _responseBox(
-          'Found ${list.length} $query related option(s). Feel free to explore them!',
-        ),
+        if (list.isEmpty) ...[
+          _responseBox('No products found for "$query".'),
+        ] else ...[
+          const SizedBox(height: 12),
+          ProductLinkBox(products: list, text: query),
+          const SizedBox(height: 12),
+          _responseBox(
+            'Found ${list.length} $query related option(s). Feel free to explore them!',
+          ),
+        ],
         const SizedBox(height: 12),
       ],
     );
@@ -132,7 +137,7 @@ class _ChatResponsePageState extends State<ChatResponsePage> {
         leading: BackButton(
           onPressed: () => Navigator.pushNamed(context, '/chat'),
         ),
-        title: const  Text('Chat'),
+        title: Text('                Chat' ,style: GoogleFonts.prata(color: Colors.black),),
       ),
       body: Column(
         children: [

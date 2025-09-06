@@ -72,7 +72,9 @@ class _SavedpageState extends State<Savedpage> {
                     flexibleSpace: FlexibleSpaceBar(
                       centerTitle: true,
                       title: Text(
-                        '${savedProducts.length} Saved Items',
+                        savedProducts.isNotEmpty
+                            ? '${savedProducts.length} Saved Item'
+                            : '',
                         style: const TextStyle(fontSize: 16.0),
                       ),
                       background: Container(

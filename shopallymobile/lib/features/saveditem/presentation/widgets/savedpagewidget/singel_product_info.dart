@@ -5,7 +5,7 @@ import 'package:shopallymobile/features/saveditem/presentation/widgets/savedpage
 import 'package:shopallymobile/core/constants/const_color.dart';
 import 'package:shopallymobile/features/saveditem/presentation/widgets/savedpagewidget/rating.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 
 class SingleProductInfo extends StatefulWidget {
   const SingleProductInfo({super.key,
