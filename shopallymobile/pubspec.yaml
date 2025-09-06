@@ -38,12 +38,25 @@ dependencies:
   connectivity_plus: ^6.1.5
   google_sign_in: ^6.2.1
   flutter_bloc: ^9.1.1
-  get_it: ^7.7.0
+  get_it: ^8.2.0
   flutter_local_notifications: ^19.4.1
   permission_handler: ^12.0.1
   web_socket_channel: ^3.0.3
   firebase_core: ^4.1.0
   firebase_messaging: ^16.0.1
+  equatable: ^2.0.7
+  http: ^1.5.0
+  flutter_secure_storage: ^9.2.4
+  google_fonts: ^6.3.1
+  dartz: ^0.10.1
+  sqflite: ^2.4.2
+  path: ^1.9.1
+  cached_network_image: ^3.4.1
+  google_nav_bar: ^5.0.7
+  animated_bottom_navigation_bar: ^1.4.0
+  curved_navigation_bar: ^1.0.6
+  url_launcher: ^6.3.2
+  internet_connection_checker: ^3.0.1
   # firebase_messaging: ^16.0.1
   # firebase_core: ^4.1.0
 

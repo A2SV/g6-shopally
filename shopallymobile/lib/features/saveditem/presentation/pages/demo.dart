@@ -1,0 +1,179 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shopallymobile/features/saveditem/presentation/bloc/bloc/saved_product_bloc.dart';
+import 'package:shopallymobile/features/saveditem/presentation/widgets/savedpagewidget/singel_product_info.dart';
+
+class Savedpage extends StatefulWidget {
+  const Savedpage({super.key});
+
+  @override
+  State<Savedpage> createState() => _SavedpageState();
+}
+
+class _SavedpageState extends State<Savedpage> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<SavedProductBloc>().add(LoadSavedProductsEvent());
+  }
+
+  // TODO: Replace with your actual list of saved items from a state management solution or API
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: BlocBuilder<SavedProductBloc, SavedProductState>(
+        builder: (context, state) {
+          if (state is SavedProductLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state is SavedProductLoaded) {
+            final savedProducts = state.products;
+            return CustomScrollView(
+              slivers: [
+                const SliverAppBar(
+                  title: Text('Saved Items'),
+                  floating: true,
+                  pinned: true,
+                ),
+                if (savedProducts.isEmpty)
+                  const SliverFillRemaining(
+                    child: Center(
+                      child: Text(
+                        'No saved items yet.',
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.all(8.0),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 2.0,
+                        mainAxisSpacing: 8.0,
+                        childAspectRatio: 0.55,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final product = savedProducts[index];
+                          return GestureDetector(
+                            onTap: () {
+                              // Navigator.push(
+                              //   context,
+                              //   MaterialPageRoute(
+                              //     builder: (context) => DetailPage(product: product),
+                              //   ),
+                              // );
+                            },
+                            child: SingleProductInfo(
+                              id: product.id,
+                              title: product.title,
+                              price: product.price,
+                              minOrder: product.minOrder,
+                              rating: product.rating,
+                              image: product.imageUrl,
+                            ),
+                          );
+                        },
+                        childCount: savedProducts.length,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          } else if (state is SavedProductError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Error loading saved items: ${state.message}',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<SavedProductBloc>().add(
+                            LoadSavedProductsEvent(),
+                          );
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          } else if (state is RemoveProductError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Error removing item: ${state.message}',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<SavedProductBloc>().add(
+                            LoadSavedProductsEvent(),
+                          );
+                    },
+                    child: const Text('Reload'),
+                  ),
+                ],
+              ),
+            );
+          } else if (state is SaveProductError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Error saving item: ${state.message}',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<SavedProductBloc>().add(
+                            LoadSavedProductsEvent(),
+                          );
+                    },
+                    child: const Text('Reload'),
+                  ),
+                ],
+              ),
+            );
+          } else if (state is AddToCompareError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Error adding to compare: ${state.message}',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<SavedProductBloc>().add(
+                            LoadSavedProductsEvent(),
+                          );
+                    },
+                    child: const Text('Reload'),
+                  ),
+                ],
+              ),
+            );
+          }
+          return const Center(child: Text('No saved items  yet.'));
+        },
+      ),
+    );
+  }
+}
