@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shopallymobile/features/saveditem/presentation/bloc/bloc/saved_product_bloc.dart';
+import 'package:shopallymobile/features/saveditem/presentation/pages/savedpage.dart';
 
 import 'features/shopping_assistant/presentation/bloc/chat_bloc.dart';
 import 'features/shopping_assistant/presentation/pages/chat_page.dart';
@@ -40,6 +41,7 @@ class ShopAllyApp extends StatelessWidget {
           final prompt = ModalRoute.of(context)?.settings.arguments as String? ?? '';
           return ChatResponsePage(prompt: prompt);
         },
+        '/saved': (_) => const Savedpage(),
         // Add more routes here as needed
         // '/error': (_) => ErrorPage(...),
         // '/splash': (_) => SplashScreen(),

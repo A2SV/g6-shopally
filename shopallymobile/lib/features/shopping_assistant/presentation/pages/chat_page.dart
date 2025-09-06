@@ -1,11 +1,11 @@
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shopallymobile/features/compare/presentation/pages/compare_page.dart';
+import 'package:shopallymobile/features/profile/presentation/pages/profile_page.dart';
 import 'package:shopallymobile/features/saveditem/presentation/pages/savedpage.dart';
 
 import '../../../../core/constants/ui_constants.dart';
-import '../bloc/chat_bloc.dart';
-import '../widgets/prompt_input.dart';
-import '../widgets/suggestion_box.dart';
+import './home_chat_page.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -15,119 +15,38 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-  final TextEditingController descriptionController = TextEditingController();
   int _currentIndex = 0;
-  bool showSuggestions = true;
 
-  @override
-  void initState() {
-    super.initState();
-    descriptionController.addListener(() {
-      setState(() {
-        showSuggestions = descriptionController.text.isEmpty;
-      });
-    });
-  }
+  final List<Widget> _pages = [
+    const HomeChatPage(), 
+    const Savedpage(), 
+    const ComparePage(), 
+    const ProfilePage(), 
+  ];
 
-  // @override
-  // void dispose() {
-  //   descriptionController.dispose();
-  //   super.dispose();
-  // }
-
-  void _handleSubmit() {
-    final userInput = descriptionController.text.trim();
-    if (userInput.isEmpty) return;
-    debugPrint('User submitted: $userInput');
-    context.read<ChatBloc>().add(SendPromptRequested(userInput));
-    Navigator.of(
-      context,
-    ).pushReplacementNamed('/detailChat', arguments: userInput);
-    descriptionController.clear();
-  }
+  final _icons = <Widget>[
+    const Icon(Icons.search, size: 30),
+    const Icon(Icons.favorite_border, size: 30),
+    const Icon(Icons.swap_horiz, size: 30),
+    const Icon(Icons.person_outline, size: 30),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundTop,
-      body: Column(
-        children: [
-          const Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(left: 24.0, right: 24.0),
-              child: Center(
-                child: Text(
-                  'Get the product recommendations you need!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (showSuggestions)
-            SuggestionBox(descriptionController: descriptionController),
-          PromptInput(
-            onSubmit: _handleSubmit,
-            descriptionController: descriptionController,
-          ),
-          const SizedBox(height: 10),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: AppColors.backgroundBottom,
-        selectedItemColor: Color.fromRGBO(255, 211, 0, 1),
-        unselectedItemColor: Colors.black54,
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentIndex,
+      body: _pages[_currentIndex],
+      bottomNavigationBar: CurvedNavigationBar(
+        backgroundColor: Colors.transparent,
+        color: const Color.fromARGB(255, 238, 230, 230),
+        buttonBackgroundColor: Colors.white,
+        height: 60.0,
+        items: _icons,
         onTap: (index) {
           setState(() {
             _currentIndex = index;
           });
-          debugPrint('Navigation index tapped: $index');
-
-          switch (index) {
-            case 0:
-              // This is the Home page, so we don't need to do anything.
-              break;
-            case 1:
-              // This is the Saved item.
-              // TODO: Replace '/saved' with the route name for your saved items page.
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Savedpage()),
-              );
-              break;
-            case 2:
-              // This is the Compare item.
-              // TODO: You can add navigation for your compare page here.
-              // Navigator.pushNamed(context, '/compare');
-              break;
-            case 3:
-              // This is the Profile item.
-              // TODO: You can add navigation for your profile page here.
-              // Navigator.pushNamed(context, '/profile');
-              break;
-          }
         },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.save_alt_outlined),
-            label: 'Saved',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.compare_arrows_outlined),
-            label: 'Compare',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
-        ],
       ),
     );
   }

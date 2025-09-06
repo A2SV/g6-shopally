@@ -4,6 +4,8 @@ import 'package:shopallymobile/features/saveditem/presentation/bloc/bloc/saved_p
 import 'package:shopallymobile/features/saveditem/presentation/widgets/savedpagewidget/price_alert.dart';
 import 'package:shopallymobile/core/constants/const_color.dart';
 import 'package:shopallymobile/features/saveditem/presentation/widgets/savedpagewidget/rating.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
 
 class SingleProductInfo extends StatefulWidget {
   const SingleProductInfo({super.key,
@@ -74,7 +76,7 @@ class _SingleProductInfoState extends State<SingleProductInfo> {
                           topRight: Radius.circular(15.0),
                         ),
                         image: DecorationImage(
-                          image: NetworkImage(widget.image),
+                          image: CachedNetworkImageProvider(widget.image),
                           fit: BoxFit.cover,
                         ),
                       ),

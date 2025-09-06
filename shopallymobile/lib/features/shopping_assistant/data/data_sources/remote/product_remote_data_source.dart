@@ -23,7 +23,7 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
       uri,
       headers: {
       'X-Device-ID': 'your-device-id',
-      'Accept-Language': 'am',
+      'Accept-Language': 'en',
       },
     );
     debugPrint('Request URL: $uri');

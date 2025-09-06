@@ -60,10 +60,10 @@ class ProductModel extends ProductEntity {
       fxTimestamp: priceObj?['fxTimestamp'] != null
           ? DateTime.tryParse(priceObj!['fxTimestamp'] as String)
           : null,
-      sellerScore: (json['sellerScore'] as num?)?.toDouble() ?? 0.0,
+      // sellerScore: (json['sellerScore'] as num?)?.toDouble() ?? 0.0,
       deliveryEstimate: (json['deliveryEstimate'] as String?) ?? '',
-      customerHighlights: (json['customerHighlights'] as String?) ?? '',
-      customerReview: (json['customerReview'] as String?) ?? '',
+      // customerHighlights: (json['customerHighlights'] as String?) ?? '',
+      // customerReview: (json['customerReview'] as String?) ?? '',
       numberSold: (json['numberSold'] as num?)?.toInt() ?? 0,
       summaryBullets: (json['summaryBullets'] as List<dynamic>?)
               ?.map((e) => e.toString())
@@ -72,7 +72,7 @@ class ProductModel extends ProductEntity {
       deeplinkUrl: (json['deeplinkUrl'] as String?) ?? '',
       taxRate: (json['taxRate'] as num?)?.toDouble() ?? 0.0,
       discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
-      inStock: json['inStock'] as bool? ?? true,
+      // inStock: json['inStock'] as bool? ?? true,
     );
   }
 

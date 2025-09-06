@@ -132,7 +132,7 @@ class _ChatResponsePageState extends State<ChatResponsePage> {
         leading: BackButton(
           onPressed: () => Navigator.pushNamed(context, '/chat'),
         ),
-        title: const Center(child: Text('Chat')),
+        title: const  Text('Chat'),
       ),
       body: Column(
         children: [

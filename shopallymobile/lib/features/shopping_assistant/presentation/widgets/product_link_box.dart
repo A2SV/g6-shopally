@@ -28,6 +28,7 @@ class _ProductLinkBoxState extends State<ProductLinkBox> {
     super.initState();
     _savedItems.addAll(widget.products);
   }
+   final List<ProductEntity> compparedItems = [];
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +39,7 @@ class _ProductLinkBoxState extends State<ProductLinkBox> {
         //     builder: (_) => ,
         //   ),
         // );
-     
+     /////////////////////////////////////////////
               showModalBottomSheet(
               context: context,
               isScrollControlled: true,
@@ -91,7 +92,7 @@ class _ProductLinkBoxState extends State<ProductLinkBox> {
                                       ),
                                       TextButton(
                                         onPressed: () {
-                                          // Compare action
+                                          debugPrint('this all is compared products ${compparedItems}');
                                         },
                                         child: const Text('Compare'),
                                       ),
@@ -154,7 +155,7 @@ class _ProductLinkBoxState extends State<ProductLinkBox> {
                           );
                         },
 
-                        child: ProductInfo(id: item.id , title: item.productName,image: item.imageUrl , price: item.price, rating: (item.rating /20).roundToDouble(),),
+                        child: ProductInfo(id: item.id , title: item.productName,image: item.imageUrl , price: item.price, rating: (item.rating /20).roundToDouble(),compparedItems:compparedItems , item : item),
                       );
                     }, childCount: _savedItems.length),
                   ),

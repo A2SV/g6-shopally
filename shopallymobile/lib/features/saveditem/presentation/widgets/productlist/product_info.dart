@@ -10,6 +10,7 @@ import 'package:shopallymobile/features/saveditem/presentation/bloc/bloc/saved_p
 import 'package:shopallymobile/features/saveditem/presentation/widgets/savedpagewidget/price_alert.dart';
 import 'package:shopallymobile/core/constants/const_color.dart';
 import 'package:shopallymobile/features/saveditem/presentation/widgets/savedpagewidget/rating.dart';
+import 'package:shopallymobile/features/shopping_assistant/domain/entities/product_entity.dart';
 
 class ProductInfo extends StatefulWidget {
   final String id;
@@ -19,6 +20,8 @@ class ProductInfo extends StatefulWidget {
   final double rating;
   final String image;
   final int issaved;
+  final List<ProductEntity> compparedItems;
+  final ProductEntity item;
 
   const ProductInfo({
     super.key,
@@ -29,6 +32,8 @@ class ProductInfo extends StatefulWidget {
     this.rating = 4.8,
     this.image = 'asset/image/imge1.jpg',
     this.issaved = 0,
+    required this.compparedItems,
+    required this.item,
   });
   @override
   State<ProductInfo> createState() => _ProductInfoState();
@@ -53,10 +58,13 @@ class _ProductInfoState extends State<ProductInfo> {
       });
     }
   }
+  bool isaddtocompare = false;
+  Color compare = Colors.white;
 
   @override
   Widget build(BuildContext context) {
     _iconColor = isSaved ? Colors.red : Colors.white;
+    
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -214,9 +222,20 @@ class _ProductInfoState extends State<ProductInfo> {
                 top: 0,
                 right: 0,
                 child: IconButton(
-                  icon: const Icon(Icons.add_box, color: Colors.white),
+                  icon: Icon(Icons.add_box, color: compare),
                   onPressed: () {
                     // TODO: Implement delete functionality
+                    setState(() {
+                      if (isaddtocompare == false) {
+                        isaddtocompare = true;
+                        compare = Colors.blue;
+                        widget.compparedItems.add(widget.item);
+                      } else {
+                        widget.compparedItems.remove(widget.item);
+                        isaddtocompare = false;
+                        compare = Colors.white;
+                      }
+                    });
                   },
                 ),
               ),

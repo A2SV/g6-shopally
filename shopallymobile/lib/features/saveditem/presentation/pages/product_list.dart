@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shopallymobile/features/saveditem/presentation/pages/detail_page.dart';
 import 'package:shopallymobile/features/saveditem/presentation/pages/savedpage.dart';
-import 'package:shopallymobile/features/saveditem/presentation/widgets/productlist/product_info.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/bloc/saved_product_bloc.dart';
 
@@ -156,7 +155,7 @@ class _ProductListPageState extends State<ProductListPage> {
                           );
                         },
                   
-                        child: ProductInfo(id: index.toString()),
+                        // child: ProductInfo(id: index.toString()),
                       );
                     }, childCount: _savedItems.length),
                   ),
