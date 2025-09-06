@@ -105,7 +105,7 @@ class _ProductLinkBoxState extends State<ProductLinkBox> {
                                       child: Padding(
                                         padding: const EdgeInsets.only(left: 16.0, bottom: 8.0),
                                         child: Text(
-                                          'Book',
+                                          '',
                                           style: Theme.of(context)
                                               .textTheme
                                               .titleLarge
@@ -124,10 +124,10 @@ class _ProductLinkBoxState extends State<ProductLinkBox> {
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
-                                      children: const [
+                                      children:  [
                                         SizedBox(height: 8),
                                         Text(
-                                          'This is a description of the searched book. It can be a bit long and will wrap to multiple lines if needed.',
+                                          'Search results for ${widget.text}',
                                         ),
                                       ],
                                     ),
