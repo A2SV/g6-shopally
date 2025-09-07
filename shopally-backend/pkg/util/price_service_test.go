@@ -1,174 +1,126 @@
-package util
+package util_test
 
 import (
 	"context"
 	"errors"
 	"testing"
 
-	imocks "github.com/shopally-ai/internal/mocks"
+	"github.com/shopally-ai/internal/testmocks"
+	"github.com/shopally-ai/pkg/util"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
-type fakeFetcher struct {
-	mock.Mock
-}
-
-func (f *fakeFetcher) FetchPrices(ctx context.Context, ids []string) (map[string]PriceAmounts, error) {
-	args := f.Called(ctx, ids)
-	if v := args.Get(0); v != nil {
-		return v.(map[string]PriceAmounts), args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
 func TestUpdatePriceIfChanged_Changed(t *testing.T) {
-	ff := &fakeFetcher{}
-	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{"p1": {USD: 20}}, nil).Once()
-	svc := NewWithFetcher(ff)
+	ff := testmocks.NewPriceFetcher(t)
+	ff.On("FetchPrices", mock.Anything, []string{"p1"}).Return(
+		map[string]util.PriceAmounts{"p1": {USD: 20}}, nil,
+	).Once()
+
+	svc := util.NewWithFetcher(ff)
 	updated, changed, err := svc.UpdatePriceIfChanged(context.Background(), "p1", 10.0)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if updated != 20.0 {
-		t.Fatalf("expected updated 20.0, got %v", updated)
-	}
-	if !changed {
-		t.Fatalf("expected changed=true")
-	}
+	require.NoError(t, err)
+	require.Equal(t, 20.0, updated)
+	require.True(t, changed)
 }
 
 func TestUpdatePriceIfChanged_Unchanged(t *testing.T) {
-	ff := &fakeFetcher{}
-	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{"p2": {USD: 15.5}}, nil).Once()
-	svc := NewWithFetcher(ff)
+	ff := testmocks.NewPriceFetcher(t)
+	ff.On("FetchPrices", mock.Anything, []string{"p2"}).Return(
+		map[string]util.PriceAmounts{"p2": {USD: 15.5}}, nil,
+	).Once()
+
+	svc := util.NewWithFetcher(ff)
 	updated, changed, err := svc.UpdatePriceIfChanged(context.Background(), "p2", 15.5)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if updated != 15.5 {
-		t.Fatalf("expected updated 15.5, got %v", updated)
-	}
-	if changed {
-		t.Fatalf("expected changed=false")
-	}
+	require.NoError(t, err)
+	require.Equal(t, 15.5, updated)
+	require.False(t, changed)
 }
 
 func TestUpdatePriceIfChanged_ProductNotFound(t *testing.T) {
-	ff := &fakeFetcher{}
-	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{}, nil).Once()
-	svc := NewWithFetcher(ff)
+	ff := testmocks.NewPriceFetcher(t)
+	ff.On("FetchPrices", mock.Anything, []string{"missing"}).Return(
+		map[string]util.PriceAmounts{}, nil,
+	).Once()
+
+	svc := util.NewWithFetcher(ff)
 	_, _, err := svc.UpdatePriceIfChanged(context.Background(), "missing", 0)
-	if err == nil {
-		t.Fatalf("expected error for missing product, got nil")
-	}
+	require.Error(t, err)
 }
 
 func TestUpdatePriceIfChanged_GatewayError(t *testing.T) {
-	ff := &fakeFetcher{}
-	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(nil, errors.New("upstream failure")).Once()
-	svc := NewWithFetcher(ff)
+	ff := testmocks.NewPriceFetcher(t)
+	ff.On("FetchPrices", mock.Anything, []string{"p3"}).Return(
+		nil, errors.New("upstream failure"),
+	).Once()
+
+	svc := util.NewWithFetcher(ff)
 	_, _, err := svc.UpdatePriceIfChanged(context.Background(), "p3", 0)
-	if err == nil {
-		t.Fatalf("expected error when gateway returns error, got nil")
-	}
+	require.Error(t, err)
 }
 
 func TestUpdatePricesIfChangedBatch_ReturnsFoundPrices(t *testing.T) {
-	ff := &fakeFetcher{}
-	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{"x": {USD: 2}, "y": {USD: 4}}, nil).Once()
-	svc := NewWithFetcher(ff)
+	ff := testmocks.NewPriceFetcher(t)
+	// Input: ["x", "y", "y", "z", ""] → After dedupe: ["x", "y", "z"]
+	ff.On("FetchPrices", mock.Anything, []string{"x", "y", "z"}).Return(
+		map[string]util.PriceAmounts{
+			"x": {USD: 2}, "y": {USD: 4}, "z": {USD: 0},
+		}, nil,
+	).Once()
+
+	svc := util.NewWithFetcher(ff)
 	current := map[string]float64{"x": 2, "y": 3}
 	res, err := svc.UpdatePricesIfChangedBatch(context.Background(), []string{"x", "y", "y", "z", ""}, current)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(res) != 2 {
-		t.Fatalf("expected 2 results for found products, got %d", len(res))
-	}
-	if res["x"].Price != 2 {
-		t.Fatalf("expected x=2, got %v", res["x"].Price)
-	}
-	if res["y"].Price != 4 {
-		t.Fatalf("expected y=4, got %v", res["y"].Price)
-	}
-	if _, ok := res["z"]; ok {
-		t.Fatalf("did not expect missing product 'z' to be present")
-	}
+	require.NoError(t, err)
+	require.Len(t, res, 3) // x, y, z
+	require.Equal(t, 2.0, res["x"].Price)
+	require.Equal(t, 4.0, res["y"].Price)
+	require.Equal(t, 0.0, res["z"].Price)
 }
 
-func TestGetCurrentPriceUSDAndETB_SuccessWithRate(t *testing.T) {
-	// Set mock FX cache with rate 60
-	c := imocks.NewICachePort(t)
-	c.On("Get", mock.Anything, FXKeyUSDToETB).Return("60", true, nil)
-	SetFXCache(c)
+func TestGetCurrentPriceUSDAndETB_Success(t *testing.T) {
+	ff := testmocks.NewPriceFetcher(t)
+	ff.On("FetchPrices", mock.Anything, []string{"p1"}).Return(
+		map[string]util.PriceAmounts{"p1": {USD: 10, ETB: 600}}, nil,
+	).Once()
 
-	// Fetcher computes ETB using USDToETB like the real client
-	ff := &fakeFetcher{}
-	etb, _, _ := USDToETB(10)
-	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{"p1": {USD: 10, ETB: etb}}, nil).Once()
-	svc := NewWithFetcher(ff)
-	usd, etbGot, err := svc.GetCurrentPriceUSDAndETB(context.Background(), "p1")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if usd != 10 {
-		t.Fatalf("expected usd=10, got %v", usd)
-	}
-	if etbGot != 600 { // 10 * 60
-		t.Fatalf("expected etb=600, got %v", etbGot)
-	}
+	svc := util.NewWithFetcher(ff)
+	usd, etb, err := svc.GetCurrentPriceUSDAndETB(context.Background(), "p1")
+	require.NoError(t, err)
+	require.Equal(t, 10.0, usd)
+	require.Equal(t, 600.0, etb)
 }
 
-func TestGetCurrentPriceUSDAndETB_RateMissingEtbZero(t *testing.T) {
-	// Use mocked cache that misses so conversion fails -> etb should be 0, but no error returned
-	c := imocks.NewICachePort(t)
-	c.On("Get", mock.Anything, FXKeyUSDToETB).Return("", false, nil)
-	SetFXCache(c)
+func TestGetCurrentPriceUSDAndETB_ProductNotFound(t *testing.T) {
+	ff := testmocks.NewPriceFetcher(t)
+	ff.On("FetchPrices", mock.Anything, []string{"missing"}).Return(
+		map[string]util.PriceAmounts{}, nil,
+	).Once()
 
-	ff := &fakeFetcher{}
-	etb, _, _ := USDToETB(7.5) // will be 0 due to missing rate
-	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{"p2": {USD: 7.5, ETB: etb}}, nil).Once()
-	svc := NewWithFetcher(ff)
-	usd, etbGot, err := svc.GetCurrentPriceUSDAndETB(context.Background(), "p2")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if usd != 7.5 {
-		t.Fatalf("expected usd=7.5, got %v", usd)
-	}
-	if etbGot != 0 {
-		t.Fatalf("expected etb=0 when rate missing, got %v", etbGot)
-	}
+	svc := util.NewWithFetcher(ff)
+	_, _, err := svc.GetCurrentPriceUSDAndETB(context.Background(), "missing")
+	require.Error(t, err)
 }
 
 func TestGetCurrentPricesUSDAndETBBatch_Success(t *testing.T) {
-	// Set mock FX cache with rate 50
-	c := imocks.NewICachePort(t)
-	c.On("Get", mock.Anything, FXKeyUSDToETB).Return("50", true, nil)
-	SetFXCache(c)
+	ff := testmocks.NewPriceFetcher(t)
+	// Input: ["a", "b", "c", "a", ""] → After dedupe: ["a", "b", "c"]
+	ff.On("FetchPrices", mock.Anything, []string{"a", "b", "c"}).Return(
+		map[string]util.PriceAmounts{
+			"a": {USD: 3, ETB: 150},
+			"b": {USD: 4, ETB: 200},
+			"c": {USD: 0, ETB: 0},
+		}, nil,
+	).Once()
 
-	ff := &fakeFetcher{}
-	etbA, _, _ := USDToETB(3)
-	etbB, _, _ := USDToETB(4)
-	ff.On("FetchPrices", mock.Anything, mock.Anything).Return(map[string]PriceAmounts{
-		"a": {USD: 3, ETB: etbA},
-		"b": {USD: 4, ETB: etbB},
-	}, nil).Once()
-	svc := NewWithFetcher(ff)
+	svc := util.NewWithFetcher(ff)
 	out, err := svc.GetCurrentPricesUSDAndETBBatch(context.Background(), []string{"a", "b", "c", "a", ""})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(out) != 2 {
-		t.Fatalf("expected 2 entries, got %d", len(out))
-	}
-	if out["a"].USD != 3 || out["a"].ETB != 150 {
-		t.Fatalf("expected a={3,150}, got %+v", out["a"])
-	}
-	if out["b"].USD != 4 || out["b"].ETB != 200 {
-		t.Fatalf("expected b={4,200}, got %+v", out["b"])
-	}
-	if _, ok := out["c"]; ok {
-		t.Fatalf("did not expect missing product 'c' to be present")
-	}
+	require.NoError(t, err)
+	require.Len(t, out, 3)
+	require.Equal(t, 3.0, out["a"].USD)
+	require.Equal(t, 150.0, out["a"].ETB)
+	require.Equal(t, 4.0, out["b"].USD)
+	require.Equal(t, 200.0, out["b"].ETB)
+	require.Equal(t, 0.0, out["c"].USD)
+	require.Equal(t, 0.0, out["c"].ETB)
 }

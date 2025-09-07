@@ -83,10 +83,22 @@ func main() {
 	// Alibaba gateway: use HTTP gateway (real) and pass configuration
 	// If you want to force the mock gateway for local development, replace
 	// the following line with: ag := gateway.NewMockAlibabaGateway()
-	ag := gateway.NewAlibabaHTTPGateway(cfg)
+	ag := gateway.NewAlibabaHTTPGateway(&cfg)
+
+	// Cache gateway (optional, for product summaries)
+	cg := gateway.NewRedisCache(rdb.Client, "ProductSummary:")
+
+	// clear already existing cached product before running
+	err = cg.ClearAllWithPrefix(context.TODO())
+
+	if err == nil {
+		log.Println("All cached products are cleared")
+	} else {
+		log.Println("Cache Clearing Failed")
+	}
 
 	// Construct usecase and handler for search
-	uc := usecase.NewSearchProductsUseCase(ag, lg, nil)
+	uc := usecase.NewSearchProductsUseCase(ag, lg, cg, 10)
 	searchHandler := handler.NewSearchHandler(uc)
 
 	// Alerts: set up Mongo repository and handler
@@ -106,7 +118,7 @@ func main() {
 	priceHandler := handler.NewPriceHandler(priceSvc)
 
 	// Initialize router
-	router := router.SetupRouter(cfg, limiter, searchHandler, compareHandler, alertHandler, priceHandler)
+	router := router.SetupRouter(&cfg, limiter, searchHandler, compareHandler, alertHandler, priceHandler)
 
 	// Start the server
 	log.Println("Starting server on port", cfg.Server.Port)

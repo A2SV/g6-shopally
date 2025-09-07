@@ -6,7 +6,13 @@ import (
 	"sort"
 	"sync"
 
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/shopally-ai/internal/contextkeys"
 	"github.com/shopally-ai/pkg/domain"
+	"golang.org/x/time/rate"
 )
 
 // SearchProductsUseCase contains the business logic for searching products.
@@ -14,21 +20,29 @@ import (
 type SearchProductsUseCase struct {
 	alibabaGateway domain.AlibabaGateway
 	llmGateway     domain.LLMGateway
-	cacheGateway   domain.CacheGateway
+	cacheGateway   domain.ICachePort
+	rateLimiter    *rate.Limiter
 }
 
 // NewSearchProductsUseCase creates a new SearchProductsUseCase.
-func NewSearchProductsUseCase(ag domain.AlibabaGateway, lg domain.LLMGateway, cg domain.CacheGateway) *SearchProductsUseCase {
+func NewSearchProductsUseCase(ag domain.AlibabaGateway, lg domain.LLMGateway, cg domain.ICachePort, requestPerSecond int) *SearchProductsUseCase {
+	limiter := rate.NewLimiter(rate.Limit(requestPerSecond), 1)
 	return &SearchProductsUseCase{
 		alibabaGateway: ag,
 		llmGateway:     lg,
 		cacheGateway:   cg,
+		rateLimiter:    limiter,
 	}
 }
 
 // Search runs the mocked search pipeline: Parse -> Fetch (using intent as filters).
 func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (interface{}, error) {
+
+	// get context Header lang
+	lang := ctx.Value(contextkeys.RespLang)
+
 	// Parse intent via LLM
+
 	intent, err := uc.llmGateway.ParseIntent(ctx, query)
 	if err != nil {
 		// For V1 mock, fail soft by using empty filters
@@ -54,12 +68,33 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 	log.Println("SearchProductsUseCase: using filters for query:", query, "as", filters)
 
 	var keywords string
+	var queryClass string
 
 	if keywordsStr, ok := filters["keywords"].(string); ok && keywordsStr != "" {
 		keywords = keywordsStr
 	} else {
 		keywords = query
 	}
+
+	if qc, ok := filters["query_class"].(string); ok && qc != "" {
+		// lowercase and trim
+		// tolower, split, sort, join to string
+		list := strings.Split(strings.ToLower(strings.TrimSpace(qc)), " ")
+		// sorting
+		sort.Strings(list)
+		// join back to string
+		normalizedQuery := strings.Join(list, " ")
+		queryClass = normalizedQuery
+	} else {
+		list := strings.Split(strings.ToLower(strings.TrimSpace(keywords)), " ")
+		// sorting
+		sort.Strings(list)
+		// join back to string
+		normalizedQuery := strings.Join(list, " ")
+		queryClass = normalizedQuery
+	}
+
+	log.Println("SearchProductsUseCase: final keywords for query:", query, "as", keywords)
 
 	// Fetch products from the gateway
 	products, err := uc.alibabaGateway.FetchProducts(ctx, keywords, filters)
@@ -88,38 +123,104 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 	// Parallel summarization: each product summary is independent.
 	if uc.llmGateway != nil {
 		var wg sync.WaitGroup
-		wg.Add(len(products))
+		sem := make(chan struct{}, 8)
 
+		// ... [Inside your Summarization block] ...
 		for i := range products {
+			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
+				sem <- struct{}{}        // Acquire semaphore (concurrency control)
+				defer func() { <-sem }() // Release semaphore
+
 				if products[index] == nil {
 					return
 				}
 
-				// Get the original product and user prompt from context if available
+				product := products[index]
 				userPrompt := query
 
-				enhancedProduct, err := uc.llmGateway.SummarizeProduct(ctx, products[index], userPrompt)
-				if err == nil && enhancedProduct != nil {
-					// Replace the entire product with enhanced version
+				// 1. First, check the cache
+				cacheKey := fmt.Sprintf("product_summary:%s:%s:%s", product.ID, lang, queryClass)
+
+				if err != nil {
+					log.Printf("Cache error for product %s: %v", product.ID, err)
+				}
+
+				var cachedProduct domain.Product
+				found, err := uc.cacheGateway.GetTypedObject(ctx, cacheKey, &cachedProduct)
+
+				if err != nil {
+					log.Printf("Cache error for product %s: %v", product.ID, err)
+				}
+				if found {
+					log.Printf("SearchProductsUseCase: Cache HIT for product %s", product.ID)
+					products[index] = &cachedProduct
+					return // Exit early on cache hit
+				}
+				log.Printf("SearchProductsUseCase: Cache MISS for product %s", product.ID)
+				// 2. CACHE MISS: Enforce rate limiting before calling the API
+
+				// Use the request context so the wait can be cancelled if the client disconnects.
+				err = uc.rateLimiter.Wait(ctx) // <-- WAIT HERE FOR RATE LIMITER
+				if err != nil {
+					// Context was cancelled (e.g., request timeout or client disconnect)
+					log.Printf("Rate limiter wait cancelled for product %s: %v", product.ID, err)
+					return // Abort processing this product
+				}
+
+				// 3. Now it's safe to call the LLM API
+				enhancedProduct, err := uc.llmGateway.SummarizeProduct(ctx, product, userPrompt)
+
+				// 4. Optional: Simple retry for 429s (though the rate limiter should prevent most of them)
+				retries := 2
+				for retries > 0 && err != nil && strings.Contains(err.Error(), "429") {
+					log.Printf("SummarizeProduct hit 429 for product %s. Retries left: %d", product.ID, retries)
+					backoff := time.Second * time.Duration(3-retries)
+					time.Sleep(backoff)
+
+					// Wait for the rate limiter again before retrying
+					if limiterErr := uc.rateLimiter.Wait(ctx); limiterErr != nil {
+						break
+					}
+					enhancedProduct, err = uc.llmGateway.SummarizeProduct(ctx, product, userPrompt)
+					retries--
+				}
+
+				if err != nil {
+					log.Printf("SummarizeProduct failed for product %s: %v", product.ID, err)
+					return
+				}
+				if enhancedProduct != nil {
+					// Cache the enhanced result for future requests
+					err = uc.cacheGateway.SetObject(ctx, cacheKey, enhancedProduct, 24*time.Hour)
+					if err != nil {
+						log.Printf("Failed to cache enhanced product %s: %v", product.ID, err)
+					}
 					products[index] = enhancedProduct
 				}
 			}(i)
 		}
 		wg.Wait()
+		// ... [Rest of your code] ...
 	}
 
 	// discarte nil products if any
 	cleaned := make([]*domain.Product, 0, len(products))
-	uncleaned := []*domain.Product{}
+	// uncleaned := []*domain.Product{}
+
+	log.Println("****************************************************************")
+	for prod := range products {
+		log.Println("Product ID:", products[prod].ID, "RemoveProduct:", products[prod].RemoveProduct, "AIMatchPercentage:", products[prod].AIMatchPercentage)
+	}
 	for _, p := range products {
 		if p != nil {
 			if !p.RemoveProduct && p.AIMatchPercentage > 30 {
 				cleaned = append(cleaned, p)
-			} else {
-				uncleaned = append(uncleaned, p)
 			}
+			//  else {
+			// 	uncleaned = append(uncleaned, p)
+			// }
 		}
 	}
 
@@ -128,11 +229,13 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 		return cleaned[i].AIMatchPercentage > cleaned[j].AIMatchPercentage
 	})
 
-	if len(cleaned) == 0 {
-		cleaned = uncleaned // fallback to uncleaned if all were removed
-	}
+	// if len(cleaned) == 0 {
+	// 	cleaned = uncleaned // fallback to uncleaned if all were removed
+	// }
 
 	products = cleaned
+
+	log.Println("SearchProductsUseCase: cleaned products for query:", query, "final count:", len(products))
 
 	log.Println("SearchProductsUseCase: summarized products for query:", query)
 
