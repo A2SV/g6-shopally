@@ -19,21 +19,26 @@ type LLMGateway interface {
 	CompareProducts(ctx context.Context, productDetails []*Product) (*ComparisonResult, error)
 }
 
-// CacheGateway defines the contract for a caching service.
-type CacheGateway interface {
-	Get(ctx context.Context, key string) (string, error)
-	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
-}
-
 type IFXClient interface {
 	GetRate(ctx context.Context, from, to string) (float64, error)
 }
 
 type ICachePort interface {
-	// Get returns the value, whether it was found, and any error.
+	// Basic operations
 	Get(ctx context.Context, key string) (string, bool, error)
-	// Set stores the value with a TTL; use 0 for no expiration.
 	Set(ctx context.Context, key, val string, ttl time.Duration) error
+	Delete(ctx context.Context, key string) error
+	Exists(ctx context.Context, key string) (bool, error)
+
+	// Object operations
+	GetObject(ctx context.Context, key string) (interface{}, bool, error)
+	GetTypedObject(ctx context.Context, key string, dest interface{}) (bool, error)
+	SetObject(ctx context.Context, key string, value interface{}, ttl time.Duration) error
+
+	// Utility operations
+	Expire(ctx context.Context, key string, ttl time.Duration) error
+	TTL(ctx context.Context, key string) (time.Duration, error)
+	Close() error
 }
 
 type AlertRepository interface {

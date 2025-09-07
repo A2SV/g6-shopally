@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -265,18 +266,28 @@ You are an advanced multi-language e-commerce intent parser. Your task is to nor
 2. DETECT CURRENCY MENTIONED IN QUERY:
    - If query mentions "USD", "$", or "dollars" → set is_etb=false
    - If query mentions "ETB", "birr", "ብር" or no currency → set is_etb=true
-3. COLLECT ALL TERMS (main product, synonyms, categories, brands, brand codes, gender, usage/function)
-4. STEM WORDS TO BASE FORM (e.g., "running" → "run", "shoes" → "shoe")
-5. TRANSLATE PRODUCT TERMS TO ENGLISH
-6. MERGE EVERYTHING INTO A SINGLE SPACE-SEPARATED STRING → keywords
-7. INCLUDE GENDER (male, female, unisex, kid) IF SPECIFIED
-8. PRESERVE BRAND NAMES AND MODEL NUMBERS (e.g., "Nike AirMax 270" → "nike airmax 270")
-9. CONVERT NUMBER WORDS (English & Amharic) TO DIGITS
-10. PRESERVE ORIGINAL BUDGET PHRASE
+3. EXTRACT PRODUCT-ONLY KEYWORDS:
+   - Keep ONLY product identifiers: main product type, brand names, model numbers, usage/function, and gender/audience.
+   - REMOVE ALL unrelated filler words (AliExpress-style marketing noise) such as:
+     "new", "2024", "hot", "latest", "luxury", "fashion", "high quality", 
+     "original", "authentic", "offer", "trending", "classic", "design", 
+     "style", "durable", "comfortable", "beautiful", "discount", "sale", "free shipping".
+   - DO NOT include generic adjectives or promotional language — only core product intent.
+	STEM WORDS TO BASE FORM (e.g., "running" → "run", "shoes" → "shoe")
+	TRANSLATE PRODUCT TERMS TO ENGLISH
+	MERGE EVERYTHING INTO A SINGLE SPACE-SEPARATED STRING → keywords
+	INCLUDE GENDER (male, female, unisex, kid) IF SPECIFIED
+	PRESERVE BRAND NAMES AND MODEL NUMBERS (e.g., "Nike AirMax 270" → "nike airmax 270")
+3. CONVERT NUMBER WORDS (English & Amharic) TO DIGITS
+4. PRESERVE ORIGINAL BUDGET PHRASE
+5. NORMALIZE QUERY INTO GENERIC CLASS → query_class 
+    - Generic class represents only the core product intent
+    - Example: "cheap gaming laptop under 1000 USD" → "gaming laptop"
+    - Example: "red nike running shoes" → "nike run shoe"
 
 ## JSON SCHEMA:
 {
-  "keywords": "string",            // single string, space-separated, stemmed, includes all relevant terms
+  "keywords": "string",            // single string, space-separated, product-focused terms only
   "min_sale_price": number|null,   // budget lower bound
   "max_sale_price": number|null,   // budget upper bound
   "original_budget": "string|null",// raw budget phrase
@@ -284,14 +295,15 @@ You are an advanced multi-language e-commerce intent parser. Your task is to nor
   "ship_to_country": "ET",
   "target_currency": "USD",
   "target_language": "en",
-  "is_etb": boolean                // true = ETB, false = USD
+  "is_etb": boolean,               // true = ETB, false = USD
+  "query_class": "string"          // normalized generic representation of product intent
 }
 
 ## EXAMPLES:
 
 "user query: red nike running shoes under 3000 birr" ->
 {
-  "keywords": "red nike run shoe sneaker sport trainer footwear male",
+  "keywords": "red nike run shoe sneaker sport footwear male",
   "min_sale_price": null,
   "max_sale_price": 3000,
   "original_budget": "under 3000 birr",
@@ -299,7 +311,8 @@ You are an advanced multi-language e-commerce intent parser. Your task is to nor
   "ship_to_country": "ET",
   "target_currency": "USD",
   "target_language": "en",
-  "is_etb": true
+  "is_etb": true,
+  "query_class": "nike run shoe"
 }
 
 "user query: cheap gaming laptop around one thousand dollars" ->
@@ -312,7 +325,8 @@ You are an advanced multi-language e-commerce intent parser. Your task is to nor
   "ship_to_country": "ET",
   "target_currency": "USD",
   "target_language": "en",
-  "is_etb": false
+  "is_etb": false,
+  "query_class": "game laptop"
 }
 
 "user query: ነጭ ቀሚስ የወንድ ከአምስት መቶ ብር በታች" ->
@@ -325,7 +339,8 @@ You are an advanced multi-language e-commerce intent parser. Your task is to nor
   "ship_to_country": "ET",
   "target_currency": "USD",
   "target_language": "en",
-  "is_etb": true
+  "is_etb": true,
+  "query_class": "shirt men"
 }
 
 "user query: samsung galaxy s23 ultra phone under 700 dollars" ->
@@ -338,7 +353,22 @@ You are an advanced multi-language e-commerce intent parser. Your task is to nor
   "ship_to_country": "ET",
   "target_currency": "USD",
   "target_language": "en",
-  "is_etb": false
+  "is_etb": false,
+  "query_class": "samsung galaxy s23 ultra phone"
+}
+
+"user query: 2024 New Luxury Fashion Men Casual Sport Running Shoes High Quality" ->
+{
+  "keywords": "men run shoe sneaker sport",
+  "min_sale_price": null,
+  "max_sale_price": null,
+  "original_budget": null,
+  "delivery_days": null,
+  "ship_to_country": "ET",
+  "target_currency": "USD",
+  "target_language": "en",
+  "is_etb": true,
+  "query_class": "run shoe"
 }
 
 INPUT QUERY: "%s"
@@ -370,6 +400,7 @@ OUTPUT:`, normalizedQuery)
 			"target_currency": "USD",
 			"target_language": "en",
 			"is_etb":          true, // Default to ETB
+			"query_class":     normalizedQuery,
 		}
 	}
 
@@ -388,16 +419,18 @@ OUTPUT:`, normalizedQuery)
 	if isETB, ok := m["is_etb"].(bool); ok && isETB {
 		// Convert prices from ETB to USD if is_etb is true and prices are present
 		if minPrice, ok := m["min_sale_price"].(float64); ok && minPrice > 0 {
-			usdPrice, _, err := util.USDToETB(minPrice)
+			usdPrice, _, err := util.USDToETB(1)
 			if err == nil {
-				m["min_sale_price"] = minPrice / usdPrice
+				m["min_sale_price"] = math.Round(minPrice / usdPrice)
 			}
 		}
 		if maxPrice, ok := m["max_sale_price"].(float64); ok && maxPrice > 0 {
-			usdPrice, _, err := util.USDToETB(maxPrice)
+			usdPrice, _, err := util.USDToETB(1)
 			if err == nil {
-				m["max_sale_price"] = maxPrice / usdPrice
+				m["max_sale_price"] = math.Round(maxPrice / usdPrice)
 			}
+
+			log.Println("USD = ", usdPrice)
 		}
 	}
 
@@ -408,6 +441,8 @@ OUTPUT:`, normalizedQuery)
 	} else {
 		m["keywords"] = strings.TrimSpace(keywords)
 	}
+
+	log.Println("FILTER :", m)
 
 	return m, nil
 }

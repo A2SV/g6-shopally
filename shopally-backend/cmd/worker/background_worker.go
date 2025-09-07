@@ -21,16 +21,19 @@ func WorkerStart() {
 	cfg, err := config.LoadConfig(".")
 	if err != nil {
 		log.Fatalf("config: %v", err)
+		return
 	}
 
 	rc := platform.NewRedisClient(cfg.Redis.Host, cfg.Redis.Port, cfg.Redis.Password, cfg.Redis.DB)
 	if err := rc.Ping(context.Background()); err != nil {
 		log.Fatalf("redis ping: %v", err)
 	}
+
 	cache := gateway.NewRedisCache(rc.Client, cfg.Redis.KeyPrefix)
 
 	fxHTTP := gateway.NewFXHTTPGateway(cfg.FX.APIURL, cfg.FX.APIKEY, nil)
 	ttl := time.Duration(cfg.FX.CacheTTLSeconds) * time.Second
+
 	fx := gateway.NewCachedFXClient(fxHTTP, cache, ttl)
 
 	// Optional: pre-warm a common FX pair periodically
@@ -48,12 +51,22 @@ func WorkerStart() {
 
 	ctx := context.Background()
 
-	fcm, err := gateway.NewFCMGateway(ctx, gateway.FCMGatewayConfig{})
+	// Initialize FCM with the config approach
+	fcm, err := gateway.NewFCMGateway(ctx, gateway.FCMGatewayConfig{
+		Config: &cfg, // Pass the entire config
+	})
 	if err != nil {
 		log.Printf("FCM init failed (alerts disabled): %v", err)
-	} else if t := os.Getenv("FCM_TEST_TOKEN"); t != "" {
-		if _, err := fcm.Send(ctx, t, "ShopAlly Alerts Ready", "Worker can send push notifications.", nil); err != nil {
-			log.Printf("FCM test send failed: %v", err)
+	} else {
+		log.Println("✅ FCM initialized successfully")
+
+		// Test FCM if token is provided
+		if t := os.Getenv("FCM_TEST_TOKEN"); t != "" {
+			if _, err := fcm.Send(ctx, t, "ShopAlly Alerts Ready", "Worker can send push notifications.", nil); err != nil {
+				log.Printf("FCM test send failed: %v", err)
+			} else {
+				log.Println("✅ FCM test notification sent successfully")
+			}
 		}
 	}
 

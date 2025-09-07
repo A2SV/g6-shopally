@@ -7,17 +7,14 @@ import (
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
+	"github.com/shopally-ai/internal/config"
 	"google.golang.org/api/option"
 )
 
 type FCMGatewayConfig struct {
-	//Must set one of the following
-	CredentialsFile string // path to service account JSON
-	CredentialsJSON string // raw service account JSON
+	Config *config.Config
 }
 
-// FCMClient is the minimal interface of firebase messaging client we depend on.
-// It enables mocking in tests without pulling firebase in.
 type FCMClient interface {
 	Send(ctx context.Context, msg *messaging.Message) (string, error)
 }
@@ -28,17 +25,21 @@ type FCMGateway struct {
 
 func NewFCMGateway(ctx context.Context, cfg FCMGatewayConfig) (*FCMGateway, error) {
 	var opt option.ClientOption
-	switch {
-	case cfg.CredentialsFile != "":
-		opt = option.WithCredentialsFile(cfg.CredentialsFile)
-	case cfg.CredentialsJSON != "":
-		opt = option.WithCredentialsJSON([]byte(cfg.CredentialsJSON))
-	case os.Getenv("FIREBASE_CREDENTIALS_FILE") != "":
+	var err error
+
+	// First try to use the config object
+	if cfg.Config.ValidateFirebaseCredentials() == nil {
+		credsJSON, err := cfg.Config.BuildFirebaseCredentialsJSON()
+		if err != nil {
+			return nil, fmt.Errorf("building Firebase credentials from config: %w", err)
+		}
+		opt = option.WithCredentialsJSON([]byte(credsJSON))
+	} else if os.Getenv("FIREBASE_CREDENTIALS_FILE") != "" {
 		opt = option.WithCredentialsFile(os.Getenv("FIREBASE_CREDENTIALS_FILE"))
-	case os.Getenv("FIREBASE_CREDENTIALS_JSON") != "":
+	} else if os.Getenv("FIREBASE_CREDENTIALS_JSON") != "" {
 		opt = option.WithCredentialsJSON([]byte(os.Getenv("FIREBASE_CREDENTIALS_JSON")))
-	default:
-		return nil, fmt.Errorf("missing Firebase credentials: set FIREBASE_CREDENTIALS_FILE or FIREBASE_CREDENTIALS_JSON")
+	} else {
+		return nil, fmt.Errorf("missing Firebase credentials: set FIREBASE_CREDENTIALS_FILE or FIREBASE_CREDENTIALS_JSON environment variables, or provide Config with Firebase credentials")
 	}
 
 	app, err := firebase.NewApp(ctx, nil, opt)

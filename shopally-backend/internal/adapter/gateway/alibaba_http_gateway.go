@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"sort"
@@ -70,7 +71,7 @@ func MapAliExpressResponseToProducts(data []byte) ([]*domain.Product, error) {
 						USD:         usd,
 						FXTimestamp: time.Now().UTC(),
 					},
-					ProductRating:    rating,
+					ProductRating:    math.Round(rating/20*10) / 10,
 					SellerScore:      0, // Placeholder
 					DeliveryEstimate: strings.TrimSpace(p.ShipToDays),
 					Description:      "", // Not available in current API response snippet
@@ -160,7 +161,7 @@ func MapAliExpressDetailResponseToProducts(data []byte) ([]*domain.Product, erro
 			ProductSmallImageURLs: p.ProductSmallImageURLs,
 			NumberSold:            p.LastestVolume,
 			Discount:              parsePercentOrZero(p.Discount),
-			ProductRating:         parsePercentOrZero(p.EvaluateRate) / 20, // Scale 0-100 to 0-5
+			ProductRating:         math.Round(parsePercentOrZero(p.EvaluateRate)/20*10) / 10, // Scale 0-100 to 0-5
 			DeliveryEstimate:      strings.TrimSpace(p.ShipToDays),
 		}
 		out = append(out, prod)
@@ -260,7 +261,7 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, Keywords string,
 		"sign_method":     "sha256",
 		"keywords":        Keywords,
 		"page_no":         "1",         // Default page number
-		"page_size":       "20",        // Default page size
+		"page_size":       "10",        // Default page size
 		"target_currency": "USD",       // Default currency
 		"target_language": "en",        // Default language
 		"sort":            "relevancy", // Default sort order

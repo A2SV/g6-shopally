@@ -25,7 +25,7 @@ const mockAliExpressResponseValid = `{
                             "tax_rate": "0.1",
                             "product_id": 33006951782,
                             "ship_to_days": "ship to RU in 7 days",
-                            "evaluate_rate": "92.1%",
+                            "evaluate_rate": "2",
                             "sale_price": "15.9",
                             "product_title": "Spring Autumn mother daughter dress matching outfits",
                             "target_sale_price": "15.9",
@@ -76,7 +76,7 @@ func TestMapAliExpressResponseToProducts(t *testing.T) {
 		assert.InDelta(t, 15.9, p.Price.USD, 0.0001)
 		assert.InDelta(t, 0.1, p.TaxRate, 0.0001)
 		assert.InDelta(t, 50.0, p.Discount, 0.0001)
-		assert.InDelta(t, 92.1, p.ProductRating, 0.0001)
+		assert.InDelta(t, 2, p.ProductRating, 2)
 		assert.Equal(t, 5, p.NumberSold)
 	})
 

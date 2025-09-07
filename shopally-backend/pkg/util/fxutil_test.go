@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/shopally-ai/internal/mocks"
+	mocks "github.com/shopally-ai/internal/mocks"
 	"github.com/stretchr/testify/suite"
 )
 
