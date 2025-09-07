@@ -1,0 +1,24 @@
+# Go binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+
+# Build cache
+/vendor/
+
+# Config files
+configs/
+
+#Environment files
+
+.env
+
+doc.txt
+
+bin/*
+
