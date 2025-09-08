@@ -69,11 +69,17 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 
 	var keywords string
 	var queryClass string
+	var promptLang string
 
 	if keywordsStr, ok := filters["keywords"].(string); ok && keywordsStr != "" {
 		keywords = keywordsStr
 	} else {
 		keywords = query
+	}
+	if pl, ok := filters["language"].(string); ok {
+		promptLang = pl
+	} else {
+		promptLang = lang.(string)
 	}
 
 	if qc, ok := filters["query_class"].(string); ok && qc != "" {
@@ -95,6 +101,12 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 	}
 
 	log.Println("SearchProductsUseCase: final keywords for query:", query, "as", keywords)
+
+	if promptLang == "am" {
+		lang = promptLang
+	}
+
+	ctx = context.WithValue(ctx, contextkeys.RespLang, lang)
 
 	// Fetch products from the gateway
 	products, err := uc.alibabaGateway.FetchProducts(ctx, keywords, filters)
