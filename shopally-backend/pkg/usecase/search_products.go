@@ -131,6 +131,10 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 	}
 
 	productTitles := make(map[string]string)
+
+	for _, product := range products {
+		productTitles[product.ID] = product.Title
+	}
 	log.Println("SearchProductsUseCase: ranked products for query:", query)
 
 	// Parallel summarization: each product summary is independent.
@@ -152,7 +156,6 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 				}
 
 				product := products[index]
-				productTitles[product.ID] = product.Title
 				userPrompt := query
 
 				// 1. First, check the cache
