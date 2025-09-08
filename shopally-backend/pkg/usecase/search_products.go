@@ -12,6 +12,7 @@ import (
 
 	"github.com/shopally-ai/internal/contextkeys"
 	"github.com/shopally-ai/pkg/domain"
+	"github.com/shopally-ai/pkg/util"
 	"golang.org/x/time/rate"
 )
 
@@ -129,6 +130,7 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 		}
 	}
 
+	productTitles := make(map[string]string)
 	log.Println("SearchProductsUseCase: ranked products for query:", query)
 
 	// Parallel summarization: each product summary is independent.
@@ -150,6 +152,7 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 				}
 
 				product := products[index]
+				productTitles[product.ID] = product.Title
 				userPrompt := query
 
 				// 1. First, check the cache
@@ -233,6 +236,18 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 			//  else {
 			// 	uncleaned = append(uncleaned, p)
 			// }
+		}
+	}
+
+	if len(cleaned) == 0 {
+		for _, product := range products {
+			score := util.CalculateProductMatchingSimple(keywords, productTitles[product.ID]) * 100
+
+			log.Println(keywords, "===> ", product.Title, "------------", score)
+			if score >= 35 {
+				product.AIMatchPercentage = int(score * 0.9)
+				cleaned = append(cleaned, product)
+			}
 		}
 	}
 
