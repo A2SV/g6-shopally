@@ -175,7 +175,7 @@ func NewGeminiLLMGateway(tm *util.TokenManager, fx domain.IFXClient) domain.LLMG
 	return &GeminiLLMGateway{
 		tokenManager: tm,
 		modelURL:     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
-		client:       &http.Client{Timeout: 12 * time.Second},
+		client:       &http.Client{Timeout: 60 * time.Second},
 		fx:           fx,
 	}
 }
@@ -284,6 +284,12 @@ You are an advanced multi-language e-commerce intent parser. Your task is to nor
     - Generic class represents only the core product intent
     - Example: "cheap gaming laptop under 1000 USD" → "gaming laptop"
     - Example: "red nike running shoes" → "nike run shoe"
+6. BASED ON WITH LANGUAGE USER PROMPT WRITEN CLASSIFIED OR IDENTIFY WHICH LANGUAGE USED FOR USER PROMPT (amharic or english)
+	- The amharic prompt could be in latin letters.
+	- Example: "yewendonch cama be andi shi birr" amharic
+	- Example: "ነጭ ቀሚስ የወንድ ከአምስት መቶ ብር በታች" amharic
+	- Example: "ed nike running shoes under 3000 birr" english
+
 
 ## JSON SCHEMA:
 {
@@ -296,7 +302,8 @@ You are an advanced multi-language e-commerce intent parser. Your task is to nor
   "target_currency": "USD",
   "target_language": "en",
   "is_etb": boolean,               // true = ETB, false = USD
-  "query_class": "string"          // normalized generic representation of product intent
+  "query_class": "string"	       // normalized generic representation of product intent
+  "language: "am" or "en"
 }
 
 ## EXAMPLES:
@@ -313,6 +320,7 @@ You are an advanced multi-language e-commerce intent parser. Your task is to nor
   "target_language": "en",
   "is_etb": true,
   "query_class": "nike run shoe"
+  "language": "en"
 }
 
 "user query: cheap gaming laptop around one thousand dollars" ->
@@ -327,6 +335,7 @@ You are an advanced multi-language e-commerce intent parser. Your task is to nor
   "target_language": "en",
   "is_etb": false,
   "query_class": "game laptop"
+  "language": "en"
 }
 
 "user query: ነጭ ቀሚስ የወንድ ከአምስት መቶ ብር በታች" ->
@@ -341,6 +350,7 @@ You are an advanced multi-language e-commerce intent parser. Your task is to nor
   "target_language": "en",
   "is_etb": true,
   "query_class": "shirt men"
+  "language: "am"
 }
 
 "user query: samsung galaxy s23 ultra phone under 700 dollars" ->
@@ -355,6 +365,7 @@ You are an advanced multi-language e-commerce intent parser. Your task is to nor
   "target_language": "en",
   "is_etb": false,
   "query_class": "samsung galaxy s23 ultra phone"
+  "language": "en"
 }
 
 "user query: 2024 New Luxury Fashion Men Casual Sport Running Shoes High Quality" ->
@@ -369,6 +380,7 @@ You are an advanced multi-language e-commerce intent parser. Your task is to nor
   "target_language": "en",
   "is_etb": true,
   "query_class": "run shoe"
+  "language" "en"
 }
 
 INPUT QUERY: "%s"
