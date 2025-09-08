@@ -242,7 +242,6 @@ func (uc *SearchProductsUseCase) Search(ctx context.Context, query string) (inte
 		}
 	}
 
-	
 	if len(cleaned) == 0 {
 		for _, product := range products {
 			score := util.CalculateProductMatchingSimple(keywords, productTitles[product.ID]) * 100
