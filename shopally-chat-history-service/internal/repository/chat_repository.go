@@ -15,21 +15,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// ChatRepository defines the interface for database operations related to chat history.
-type ChatRepository interface {
-	FindByUserEmail(ctx context.Context, userEmail string) (*domain.ChatHistory, error)
-	PushChatSession(ctx context.Context, userEmail string, chatSession domain.ChatSession) (string, error)
-	PushMessageToSession(ctx context.Context, userEmail, chatID string, message domain.Message) error
-	PullChatSession(ctx context.Context, userEmail, chatID string) error
-}
-
 // mongoChatRepository implements ChatRepository for MongoDB.
 type mongoChatRepository struct {
 	collection *mongo.Collection
 }
 
 // NewMongoChatRepository creates a new MongoDB implementation of ChatRepository.
-func NewMongoChatRepository(collection *mongo.Collection) ChatRepository {
+func NewMongoChatRepository(collection *mongo.Collection) domain.ChatRepository {
 	return &mongoChatRepository{
 		collection: collection,
 	}
@@ -56,6 +48,10 @@ func (r *mongoChatRepository) FindByUserEmail(ctx context.Context, userEmail str
 // It creates the top-level document if it doesn't exist (upsert: true).
 func (r *mongoChatRepository) PushChatSession(ctx context.Context, userEmail string, chatSession domain.ChatSession) (string, error) {
 	now := primitive.NewDateTimeFromTime(time.Now())
+
+	newID := primitive.NewObjectID()
+
+	chatSession.ChatID = newID.Hex()
 
 	filter := bson.M{"user_email": userEmail}
 	update := bson.M{

@@ -7,26 +7,16 @@ import (
 
 	"github.com/shopally/chat-history/internal/domain"
 	"github.com/shopally/chat-history/internal/errors"
-	"github.com/shopally/chat-history/internal/repository"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// ChatService defines the interface for chat-related business logic operations.
-type ChatService interface {
-	CreateChat(ctx context.Context, userEmail, chatTitle string) (*domain.ChatSession, error)
-	AddMessageToChat(ctx context.Context, userEmail, chatID string, userPrompt string, products []domain.Product) error
-	DeleteChat(ctx context.Context, userEmail, chatID string) error
-	GetUserChats(ctx context.Context, userEmail string) ([]domain.ChatSession, error)
-	GetChatSession(ctx context.Context, userEmail, chatID string) (*domain.ChatSession, error)
-}
-
 // chatServiceImpl implements the ChatService interface.
 type chatServiceImpl struct {
-	repo repository.ChatRepository
+	repo domain.ChatRepository
 }
 
 // NewChatService creates and returns a new instance of ChatService.
-func NewChatService(repo repository.ChatRepository) ChatService {
+func NewChatService(repo domain.ChatRepository) domain.ChatService {
 	return &chatServiceImpl{
 		repo: repo,
 	}

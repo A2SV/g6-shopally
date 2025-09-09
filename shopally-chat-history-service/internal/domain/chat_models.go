@@ -65,3 +65,4 @@ type APIError struct {
 	Code    string `json:"code"`    // e.g., "INVALID_INPUT", "NOT_FOUND", "INTERNAL_SERVER_ERROR"
 	Message string `json:"message"` // Human-readable error description
 }
+

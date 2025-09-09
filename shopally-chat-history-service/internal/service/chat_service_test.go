@@ -16,7 +16,7 @@ import (
 type ChatServiceTestSuite struct {
 	suite.Suite
 	repo *mocks.MockChatRepository
-	svc  ChatService
+	svc  domain.ChatService
 }
 
 func (s *ChatServiceTestSuite) SetupTest() {

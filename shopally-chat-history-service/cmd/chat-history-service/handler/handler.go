@@ -8,14 +8,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/shopally/chat-history/internal/domain"
 	appErrors "github.com/shopally/chat-history/internal/errors"
-	"github.com/shopally/chat-history/internal/service"
 )
 
 type ChatHandler struct {
-	chatService service.ChatService
+	chatService domain.ChatService
 }
 
-func NewChatHandler(svc service.ChatService) *ChatHandler {
+func NewChatHandler(svc domain.ChatService) *ChatHandler {
 	return &ChatHandler{chatService: svc}
 }
 
