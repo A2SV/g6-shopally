@@ -41,16 +41,17 @@ func (s *chatServiceImpl) CreateChat(ctx context.Context, userEmail, chatTitle s
 	now := primitive.NewDateTimeFromTime(time.Now())
 
 	chat := domain.ChatSession{
-		ChatID:      primitive.NewObjectID().Hex(),
 		ChatTitle:   chatTitle,
 		StartTime:   now,
 		LastUpdated: now,
 		Messages:    []domain.Message{},
 	}
 
-	if err := s.repo.PushChatSession(ctx, userEmail, chat); err != nil {
+	chatID, err := s.repo.PushChatSession(ctx, userEmail, chat)
+	if err != nil {
 		return nil, err
 	}
+	chat.ChatID = chatID
 
 	return &chat, nil
 }
