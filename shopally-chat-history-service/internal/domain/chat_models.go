@@ -61,12 +61,6 @@ type CreateChatRequest struct {
 	ChatTitle string `json:"chat_title"`
 }
 
-// APIResponse is a generic structure for all successful API responses.
-type APIResponse struct {
-	Data  interface{} `json:"data"`
-	Error *APIError   `json:"error"`
-}
-
 type APIError struct {
 	Code    string `json:"code"`    // e.g., "INVALID_INPUT", "NOT_FOUND", "INTERNAL_SERVER_ERROR"
 	Message string `json:"message"` // Human-readable error description
