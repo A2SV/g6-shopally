@@ -2,12 +2,13 @@ package repository
 
 import (
 	"context"
-	"fmt"
-	"log" // Using standard log for error logging as no custom logger is injected into the struct
+	"fmt" // Added for fmt.Printf
+	"log"
 	"time"
 
 	"github.com/shopally/chat-history/internal/domain"
 	"github.com/shopally/chat-history/internal/errors"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,7 +18,7 @@ import (
 // ChatRepository defines the interface for database operations related to chat history.
 type ChatRepository interface {
 	FindByUserEmail(ctx context.Context, userEmail string) (*domain.ChatHistory, error)
-	PushChatSession(ctx context.Context, userEmail string, chatSession domain.ChatSession) error
+	PushChatSession(ctx context.Context, userEmail string, chatSession domain.ChatSession) (string, error)
 	PushMessageToSession(ctx context.Context, userEmail, chatID string, message domain.Message) error
 	PullChatSession(ctx context.Context, userEmail, chatID string) error
 }
@@ -43,7 +44,7 @@ func (r *mongoChatRepository) FindByUserEmail(ctx context.Context, userEmail str
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			log.Printf("Repository: No chat history found for user email %s", userEmail)
-			return nil, errors.ErrNotFound // Translate MongoDB's "no documents" error
+			return nil, errors.ErrNotFound
 		}
 		log.Printf("Repository: MongoDB error finding chat history for %s: %v", userEmail, err)
 		return nil, fmt.Errorf("repository error finding chat history: %w", err)
@@ -53,25 +54,25 @@ func (r *mongoChatRepository) FindByUserEmail(ctx context.Context, userEmail str
 
 // PushChatSession adds a new chat session to a user's chat history document.
 // It creates the top-level document if it doesn't exist (upsert: true).
-func (r *mongoChatRepository) PushChatSession(ctx context.Context, userEmail string, chatSession domain.ChatSession) error {
+func (r *mongoChatRepository) PushChatSession(ctx context.Context, userEmail string, chatSession domain.ChatSession) (string, error) {
 	now := primitive.NewDateTimeFromTime(time.Now())
 
 	filter := bson.M{"user_email": userEmail}
 	update := bson.M{
-		"$push": bson.M{"chat_sessions": chatSession}, // Add the new chat session to the array
-		"$set":  bson.M{"last_activity": now},         // Update last activity timestamp
-		"$setOnInsert": bson.M{ // These fields are set only if a new document is inserted
+		"$push": bson.M{"chat_sessions": chatSession},
+		"$set":  bson.M{"last_activity": now},
+		"$setOnInsert": bson.M{
 			"user_email": userEmail,
 		},
 	}
-	opts := options.Update().SetUpsert(true) // Crucial: create document if it doesn't exist
+	opts := options.Update().SetUpsert(true)
 
 	_, err := r.collection.UpdateOne(ctx, filter, update, opts)
 	if err != nil {
 		log.Printf("Repository: MongoDB error pushing chat session for %s: %v", userEmail, err)
-		return fmt.Errorf("repository error pushing chat session: %w", err)
+		return "", fmt.Errorf("repository error pushing chat session: %w", err)
 	}
-	return nil
+	return chatSession.ChatID, nil
 }
 
 // PushMessageToSession adds a new message turn to a specific chat session within a user's history.
@@ -80,13 +81,13 @@ func (r *mongoChatRepository) PushMessageToSession(ctx context.Context, userEmai
 
 	filter := bson.M{
 		"user_email":            userEmail,
-		"chat_sessions.chat_id": chatID, // Find the document and the specific chat session within it
+		"chat_sessions.chat_id": chatID,
 	}
 	update := bson.M{
-		"$push": bson.M{"chat_sessions.$.messages": message}, // Add the new message to the messages array of the matched session
+		"$push": bson.M{"chat_sessions.$.messages": message},
 		"$set": bson.M{
-			"last_activity":                now, // Update top-level activity
-			"chat_sessions.$.last_updated": now, // Update specific chat session's last updated timestamp
+			"last_activity":                now,
+			"chat_sessions.$.last_updated": now,
 		},
 	}
 
@@ -96,7 +97,6 @@ func (r *mongoChatRepository) PushMessageToSession(ctx context.Context, userEmai
 		return fmt.Errorf("repository error pushing message to session: %w", err)
 	}
 	if result.ModifiedCount == 0 {
-		// This implies either user_email or chat_id was not found
 		log.Printf("Repository: PushMessageToSession: Chat session %s not found for user %s or no modification made.", chatID, userEmail)
 		return errors.ErrNotFound
 	}
@@ -107,21 +107,28 @@ func (r *mongoChatRepository) PushMessageToSession(ctx context.Context, userEmai
 func (r *mongoChatRepository) PullChatSession(ctx context.Context, userEmail, chatID string) error {
 	now := primitive.NewDateTimeFromTime(time.Now())
 
-	filter := bson.M{"user_email": userEmail}
+	// Fixed: Filter should include both user_email AND the specific chat session
+	filter := bson.M{
+		"user_email":            userEmail,
+		"chat_sessions.chat_id": chatID, // This ensures we only match documents that have this chat session
+	}
+
 	update := bson.M{
-		"$pull": bson.M{"chat_sessions": bson.M{"chat_id": chatID}}, // Remove the chat session with matching chat_id
-		"$set":  bson.M{"last_activity": now},                       // Update top-level activity
+		"$pull": bson.M{"chat_sessions": bson.M{"chat_id": chatID}},
+		"$set":  bson.M{"last_activity": now},
 	}
 
 	result, err := r.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		log.Printf("Repository: MongoDB error pulling chat session %s for %s: %v", chatID, userEmail, err)
+		log.Println(ctx, "MongoDB error pulling chat session %s for %s: %v", chatID, userEmail, err)
 		return fmt.Errorf("repository error pulling chat session: %w", err)
 	}
+
 	if result.ModifiedCount == 0 {
-		// This implies either user_email or chat_id was not found
-		log.Printf("Repository: PullChatSession: Chat session %s not found for user %s or no modification made.", chatID, userEmail)
+		log.Println(ctx, "Chat session %s not found for user %s", chatID, userEmail)
 		return errors.ErrNotFound
 	}
+
+	log.Println(ctx, "Successfully removed chat session %s for user %s", chatID, userEmail)
 	return nil
 }
