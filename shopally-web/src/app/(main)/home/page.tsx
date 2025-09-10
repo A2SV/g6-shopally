@@ -1,4 +1,3 @@
-//src/app/(main)/home/page.tsx
 "use client";
 
 import CardComponent from "@/app/components/home-page-component/page";
@@ -12,8 +11,16 @@ import { ComparePayload } from "@/types/Compare/Comparison";
 import { ApiErrorResponse, Product } from "@/types/types";
 import { SerializedError } from "@reduxjs/toolkit";
 import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
-import { ArrowRight, Loader2, MessageCircleMore } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useSavedItems } from "@/hooks/useSavedItems";
+import {
+  ArrowRight,
+  Loader2,
+  Star,
+  X,
+  Heart,
+  MessageCircleMore,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface ConversationMessage {
   id: string;
@@ -31,22 +38,30 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const [input, setInput] = useState("");
   const [compareList, setCompareList] = useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const { saveItem } = useSavedItems();
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(
+    new Set()
+  );
 
   const [searchProducts, { isLoading }] = useSearchProductsMutation();
   const [compareProducts, { isLoading: isComparing }] =
     useCompareProductsMutation();
 
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  const generateId = () => `msg-${Math.random().toString(36).slice(2, 10)}`;
+
   const handleSend = async () => {
     if (input.trim() === "") return;
 
     const userMessage: ConversationMessage = {
-      id: `user-${Date.now()}`,
+      id: generateId(),
       type: "user",
       content: input,
       timestamp: Date.now(),
     };
 
-    // Add user message to conversation
     setConversation((prev) => [...prev, userMessage]);
 
     const userInput = input;
@@ -62,20 +77,19 @@ export default function Home() {
       const products = res?.data?.products || [];
 
       const aiMessage: ConversationMessage = {
-        id: `ai-${Date.now()}`,
+        id: generateId(),
         type: "ai",
         content: `Found ${products.length} products for "${userInput}"`,
         products: products,
         timestamp: Date.now(),
       };
 
-      // Add AI response to conversation
       setConversation((prev) => [...prev, aiMessage]);
     } catch (err) {
       console.error("❌ Search failed:", err);
 
       const errorMessage: ConversationMessage = {
-        id: `ai-error-${Date.now()}`,
+        id: generateId(),
         type: "ai",
         content: `Sorry, I couldn't find products for "${userInput}". Please try again.`,
         products: [],
@@ -86,11 +100,14 @@ export default function Home() {
     }
   };
 
-  // Set client flag and load conversation from localStorage
+  const handleSaveItem = () => {
+    saveItem(selectedProduct);
+    alert("Item saved!");
+  };
+
+  // Load stored conversation
   useEffect(() => {
     setIsClient(true);
-
-    // Load conversation from localStorage
     const stored = localStorage.getItem("conversation");
     if (stored) {
       try {
@@ -102,13 +119,28 @@ export default function Home() {
     }
   }, []);
 
+  // Persist conversation & auto-scroll
   useEffect(() => {
     if (isClient) {
       localStorage.setItem("conversation", JSON.stringify(conversation));
+      if (conversation.length > 0) {
+        setTimeout(() => {
+          bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
     }
   }, [conversation, isClient]);
 
-  // Listen for compare list changes
+  // Prevent background scroll when sidebar open
+  useEffect(() => {
+    if (selectedProduct) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [selectedProduct]);
+
+  // Track compare list
   useEffect(() => {
     const updateCompare = () => {
       const list = localStorage.getItem("compareProduct");
@@ -117,14 +149,8 @@ export default function Home() {
 
     updateCompare();
     window.addEventListener("storage", updateCompare);
-
     return () => window.removeEventListener("storage", updateCompare);
   }, []);
-
-  // Log whenever compareList changes
-  useEffect(() => {
-    console.log("Updated compare list:", compareList);
-  }, [compareList]);
 
   const handleCompare = async () => {
     if (compareList.length < 2 || compareList.length > 4) {
@@ -133,8 +159,6 @@ export default function Home() {
     }
 
     try {
-      console.log("Sending compare list:", compareList);
-
       const payload: ComparePayload = {
         products: compareList.map((p) => ({
           id: p.id,
@@ -151,50 +175,51 @@ export default function Home() {
       };
 
       const res = await compareProducts(payload).unwrap();
-      console.log("Comparison result:", res);
 
-      // ✅ Save the response to localStorage
       localStorage.setItem(
         "comparisonResults",
-        JSON.stringify(res.data.products) // full ComparisonItem objects
+        JSON.stringify(res.data.products)
       );
 
-      // ✅ Clear compare list storage after success
       localStorage.removeItem("compareProduct");
       setCompareList([]);
 
-      // ✅ Redirect to compare page
       window.location.href = "/comparison";
     } catch (err: unknown) {
       console.error("❌ Compare API failed:", err);
 
       if (typeof err === "object" && err !== null) {
         const e = err as FetchBaseQueryError | SerializedError;
-
         if ("data" in e) {
-          // 👇 cast `data` to your API error type
           const data = e.data as ApiErrorResponse | undefined;
-          console.error("Error data:", data);
-
           alert(`Compare failed: ${data?.error?.message ?? "Unknown error"}`);
           return;
-        }
-
-        if ("status" in e) {
-          console.error("Error status:", (e as FetchBaseQueryError).status);
         }
       }
 
       alert("Compare failed due to an unexpected error. Check console.");
     }
   };
+
+  const toggleExpanded = (messageId: string) => {
+    setExpandedMessages((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  };
+
   return (
     <main
-      className={`min-h-screen flex flex-col items-center pb-24 ${
+      className={`min-h-screen flex flex-col items-center relative pb-24 ${
         isDarkMode ? "bg-[#090C11]" : "bg-[#FFFFFF]"
       }`}
     >
-      {/* Compare Products Button - moved above chat section */}
+      {/* Compare Button */}
       {compareList.length >= 2 && (
         <div className="w-full max-w-3xl px-4 mt-6 sticky top-4 z-50">
           <button
@@ -209,17 +234,17 @@ export default function Home() {
         </div>
       )}
 
-      {/* Hero Section */}
+      {/* Hero + Search */}
       <section className="max-w-3xl text-center mt-12 mb-4 px-4">
         <h1
-          className={`text-2xl sm:text-3xl lg:text-4xl mb-4 font-bold leading-tight text-center ${
+          className={`text-2xl sm:text-3xl lg:text-4xl mb-4 font-bold leading-tight ${
             isClient && conversation.length === 0 ? "block" : "hidden"
           } ${isDarkMode ? "text-white" : "text-black"}`}
         >
           {t("Your Smart AI Assistant for AliExpress Shopping")}
         </h1>
         <p
-          className={`mb-12 text-center leading-relaxed max-w-2xl mx-auto ${
+          className={`mb-12 leading-relaxed max-w-2xl mx-auto ${
             isClient && conversation.length === 0 ? "block" : "hidden"
           } ${isDarkMode ? "text-[#FFF]" : "text-gray-400"}`}
         >
@@ -231,12 +256,8 @@ export default function Home() {
         {/* Desktop Search Box */}
         <div
           className={`flex items-center border border-gray-300 dark:border-gray-600 rounded-xl overflow-hidden shadow-sm max-w-2xl mx-auto w-full ${
-            isDarkMode
-              ? "bg-[#262B32] text-[#999999]"
-              : "bg-white text-[#999999]"
-          } ${
-            isClient && conversation.length === 0 ? "hidden sm:flex" : "hidden"
-          }`}
+            isDarkMode ? "bg-[#262B32] text-[#999999]" : "bg-white text-[#999999]"
+          } ${isClient && conversation.length === 0 ? "hidden sm:flex" : "hidden"}`}
         >
           <input
             type="text"
@@ -262,7 +283,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Suggestions or Results */}
+      {/* Suggestions or Conversation */}
       {isClient && conversation.length === 0 ? (
         <section className="mt-10 px-4 max-w-3xl w-full">
           <h2
@@ -283,51 +304,7 @@ export default function Home() {
                 key={i}
                 onClick={() => {
                   setInput(q);
-                  // We'll trigger handleSend after setting input
-                  setTimeout(() => {
-                    const userMessage: ConversationMessage = {
-                      id: `user-${Date.now()}`,
-                      type: "user",
-                      content: q,
-                      timestamp: Date.now(),
-                    };
-
-                    setConversation((prev) => [...prev, userMessage]);
-
-                    // Simulate the search
-                    searchProducts({
-                      query: q,
-                      priceMaxETB: null,
-                      minRating: null,
-                    })
-                      .unwrap()
-                      .then((res) => {
-                        const products = res?.data?.products || [];
-
-                        const aiMessage: ConversationMessage = {
-                          id: `ai-${Date.now()}`,
-                          type: "ai",
-                          content: `Found ${products.length} products for "${q}"`,
-                          products: products,
-                          timestamp: Date.now(),
-                        };
-
-                        setConversation((prev) => [...prev, aiMessage]);
-                      })
-                      .catch((err) => {
-                        console.error("❌ Search failed:", err);
-
-                        const errorMessage: ConversationMessage = {
-                          id: `ai-error-${Date.now()}`,
-                          type: "ai",
-                          content: `Sorry, I couldn't find products for "${q}". Please try again.`,
-                          products: [],
-                          timestamp: Date.now(),
-                        };
-
-                        setConversation((prev) => [...prev, errorMessage]);
-                      });
-                  }, 0);
+                  setTimeout(() => handleSend(), 0);
                 }}
                 className={`flex items-center gap-2 border rounded-lg px-3 py-2 text-sm transition hover:bg-gray-50 ${
                   isDarkMode
@@ -342,25 +319,24 @@ export default function Home() {
           </div>
         </section>
       ) : (
-        <div className="w-full max-w-3xl px-4 flex flex-col gap-4 mt-6">
-          {/* Conversation Messages */}
+        <div className="w-full max-w-3xl px-4 flex flex-col gap-4 mt-6 pb-24">
           {conversation.map((message) => (
             <div key={message.id} className="flex flex-col gap-2">
-              {/* User Message */}
+              {/* User */}
               {message.type === "user" && (
                 <div className="flex justify-end">
-                  <div className="max-w-3/4 break-words px-4 py-2 rounded-xl bg-yellow-400 text-black">
+                  <div className="max-w-3/4 px-4 py-2 rounded-xl bg-yellow-400 text-black">
                     {message.content}
                   </div>
                 </div>
               )}
 
-              {/* AI Response */}
+              {/* AI */}
               {message.type === "ai" && (
                 <div className="flex flex-col gap-3">
                   <div className="flex justify-start">
                     <div
-                      className={`max-w-3/4 break-words px-4 py-2 rounded-xl ${
+                      className={`max-w-3/4 px-4 py-2 rounded-xl ${
                         isDarkMode
                           ? "bg-gray-700 text-white"
                           : "bg-gray-100 text-gray-800"
@@ -369,62 +345,181 @@ export default function Home() {
                       {message.content}
                     </div>
                   </div>
-
-                  {/* Product Results */}
                   {message.products && message.products.length > 0 && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-                      {message.products.map((product, i) => (
+                      {(expandedMessages.has(message.id)
+                        ? message.products
+                        : message.products.slice(0, 4)
+                      ).map((product, i) => (
                         <CardComponent
                           key={`${message.id}-product-${i}`}
                           mode={isDarkMode ? "dark" : "light"}
                           product={product}
+                          onClick={() => setSelectedProduct(product)}
                         />
                       ))}
+                    </div>
+                  )}
+                  {message.products && message.products.length > 4 && (
+                    <div className="flex justify-center mt-2">
+                      <button
+                        onClick={() => toggleExpanded(message.id)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          isDarkMode
+                            ? "bg-gray-700 text-white hover:bg-gray-600"
+                            : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                        }`}
+                      >
+                        {expandedMessages.has(message.id)
+                          ? `Show Less (${message.products.length - 4} hidden)`
+                          : `See More (${message.products.length - 4} more products)`}
+                      </button>
                     </div>
                   )}
                 </div>
               )}
             </div>
           ))}
+          <div ref={bottomRef} />
         </div>
       )}
 
-      {/* Mobile Search Box */}
+      {/* 🔍 Mobile Search Box */}
       <section
-        className={`fixed bottom-2 sm:bottom-4 left-16 lg:left-64 right-4 px-3 sm:px-4 ${
+        className={`fixed bottom-0 left-16 lg:left-64 right-0 z-50 ${
           isClient && conversation.length === 0 ? "block sm:hidden" : "block"
-        } ${isDarkMode ? "bg-[#090C11]" : "bg-[#FFFFFF]"}`}
+        }`}
       >
         <div
-          className={`flex items-center border border-gray-300 dark:border-gray-600 rounded-xl overflow-hidden shadow-sm w-full ${
-            isDarkMode
-              ? "bg-[#262B32] text-[#999999]"
-              : "bg-white text-[#999999]"
+          className={`absolute inset-0 backdrop-blur-sm ${
+            isDarkMode ? "bg-[#090C11]/95" : "bg-[#FFFFFF]/95"
           }`}
-        >
-          <input
-            type="text"
-            placeholder={t("Ask me anything about products you need...")}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            className={`flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base focus:outline-none min-w-0 ${
-              isDarkMode ? "bg-gray-800 text-white" : "text-black"
+        />
+        <div className="relative px-4 sm:px-8 py-2 sm:py-4 flex justify-center">
+          <div
+            className={`relative flex items-center border border-gray-300 dark:border-gray-600 rounded-xl overflow-hidden shadow-sm w-full max-w-4xl ${
+              isDarkMode ? "bg-[#262B32] text-[#999999]" : "bg-white text-[#999999]"
             }`}
-          />
-          <button
-            onClick={handleSend}
-            disabled={isLoading}
-            className="bg-yellow-400 rounded-xl p-2.5 sm:p-3 mr-1 my-1 flex items-center justify-center flex-shrink-0"
           >
-            {isLoading ? (
-              <Loader2 size={18} className="animate-spin text-black" />
-            ) : (
-              <ArrowRight size={18} className="sm:w-5 sm:h-5 text-black" />
-            )}
-          </button>
+            <input
+              type="text"
+              placeholder={t("Ask me anything about products you need...")}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              className={`flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base focus:outline-none min-w-0 ${
+                isDarkMode ? "bg-gray-800 text-white" : "text-black"
+              }`}
+            />
+            <button
+              onClick={handleSend}
+              disabled={isLoading}
+              className="bg-yellow-400 rounded-xl p-2.5 sm:p-3 mr-1 my-1 flex items-center justify-center flex-shrink-0"
+            >
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin text-black" />
+              ) : (
+                <ArrowRight size={18} className="sm:w-5 sm:h-5 text-black" />
+              )}
+            </button>
+          </div>
         </div>
       </section>
+
+      {/* 🔥 Sidebar Product Description */}
+      {selectedProduct && (
+        <>
+          <div
+            onClick={() => setSelectedProduct(null)}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+          />
+          <aside
+            className={`fixed top-0 right-0 h-full w-full sm:w-96 shadow-2xl z-50 
+              transition-transform duration-300 ease-in-out transform translate-x-0
+              ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900"}
+              rounded-l-2xl flex flex-col`}
+          >
+            <div
+              className={`flex items-start justify-between gap-3 p-4 border-b ${
+                isDarkMode ? "border-gray-700" : "border-gray-200"
+              }`}
+            >
+              <div>
+                <h2 className="font-semibold text-lg line-clamp-2">
+                  {selectedProduct.title}
+                </h2>
+              </div>
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 p-5 space-y-6 overflow-y-auto">
+              <div className="w-full aspect-square bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden flex items-center justify-center shadow-md">
+                <img
+                  src={selectedProduct.imageUrl}
+                  alt={selectedProduct.title}
+                  className="object-contain max-h-full max-w-full hover:scale-105 transition"
+                />
+              </div>
+
+              <div className="flex justify-between items-center">
+                <p className="text-2xl font-bold text-yellow-400">
+                  ${selectedProduct.price?.usd ?? selectedProduct.price}
+                </p>
+                <div className="flex items-center gap-1 text-sm text-gray-500">
+                  <Star className="w-4 h-4 text-yellow-400" />
+                  {selectedProduct.productRating} (230 reviews)
+                </div>
+              </div>
+
+              {selectedProduct.summaryBullets && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Key Features</h3>
+                  <ul className="space-y-2 text-sm leading-relaxed">
+                    {selectedProduct.summaryBullets.map((b, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-yellow-400">✔</span>
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div
+              className={`p-4 border-t ${
+                isDarkMode
+                  ? "border-gray-700 bg-gray-900"
+                  : "border-gray-100 bg-white"
+              }`}
+            >
+              <div className="flex gap-3">
+                <a
+                  href={selectedProduct.deeplinkUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 bg-yellow-400 text-black text-center py-2 rounded-md font-semibold shadow hover:opacity-90 transition"
+                >
+                  Buy Now
+                </a>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSaveItem();
+                  }}
+                className="flex items-center justify-center px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                  <Heart className="w-5 h-5 text-red-500" />
+                </button>
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
     </main>
   );
 }
