@@ -2,6 +2,8 @@ package gateway
 
 import (
 	"fmt"
+
+	"github.com/shopally-ai/pkg/domain"
 )
 
 func intentParsingPrompt(userPrompt string) string {
@@ -543,4 +545,99 @@ func intentParsingPrompt(userPrompt string) string {
 
 			USER PROMPT: %s
 			`, userPrompt)
+}
+
+func comparsionPrompt(productDetails []*domain.Product, deliveryInfo string, lang string, b string) string {
+	return fmt.Sprintf(`You are an expert e-commerce product comparison assistant. Analyze and compare %d products thoroughly.
+
+		CRITICAL INSTRUCTIONS:
+		1. Return STRICT JSON ONLY, no additional text or commentary
+		2. JSON structure must exactly match the format below
+		3. If language is Amharic ("am"), **translate both feature keys and descriptive text to Amharic**
+		4: UPDATE aiMatchPercentage FEILD OF EVERY PRODUCT DEPEND ON THE COMPARSION (THE CONFIDENCE OF YOU LLM TO SUGGEST AS BEST PRODUCT FORM THE PRODUCTS)
+
+		{
+		"products": [
+			{
+			"product": { "id":"123", "title":"Sample Product", "imageUrl":"https://example.com/image.jpg", "price":{"etb":1000,"usd":20,"fxTimestamp":"2025-09-03T12:00:00Z"}, "productRating":4.5, "sellerScore":95, "deliveryEstimate":"3-5 days", "description":"Sample description", "summaryBullets":["bullet1","bullet2"], "deeplinkUrl":"https://example.com/product/123", "taxRate":0.1, "discount":10, "numberSold":150, "aiMatchPercentage":0 },
+			"synthesis": {
+				English (en)
+				"pros": [
+					"Affordable price",
+					"High quality materials",
+					"Fast delivery"
+				],
+				"cons": [
+					"Limited color options"
+				]
+
+				Amharic (am)
+				"pros": [
+					"ተመጣጣኝ ዋጋ",
+					"ከፍተኛ ጥራት ያላቸው ቁሳቁሶች",
+					"ፈጣን እና ታማኝ አሰራር"
+				],
+				"cons": [
+					"የቀለም አማራጮች ገደብ ተደርጓል"
+				]
+				"isBestValue": true,
+				"features": {
+				// English keys if lang="en"
+				"Price & Value": "Cheaper than competitors with excellent value",
+				"Quality & Durability": "Solid build with premium materials and long-lasting",
+				"Seller Trust": "Highly rated seller with good reputation",
+				"Delivery Speed": "Faster than most competitors",
+				"Popularity & Demand": "Well-liked with high sales volume",
+				"Unique Features": "Supports wireless charging and extra features",
+
+				// Amharic keys if lang="am"
+				"ዋጋ እና የዋጋ እኩልነት": "ከተወዳጅ ምርቶች በተመጣጣኝ ዋጋ ይገኛል",
+				"ጥራት እና ቆይታ": "ጥሩ እና ረጅም ቆይታ ያለው ጥራት ተሸማች",
+				"የሻጭ እርግጠኝነት": "ከፍተኛ ደረጃ ያለው ታማኝ ሻጭ",
+				"የአሰራር ፍጥነት": "ከአብዛኛዎቹ ምርቶች ፈጣን የማድረስ ጊዜ",
+				"ታዋቂነት እና ጥያቄ": "በከፍተኛ ብዛት የተሸጠ የታወቀ ምርት",
+				"ብቸኛ ስለሆነ ባህሪዎች": "ያለ ግድ የሚከናወን ማስተካከያ ያለው እና ተጨማሪ ባህሪዎች ያሉበት"
+				}
+			}
+			}
+			/* repeat above block for all %d products */
+		],
+		"overallComparison": {
+			"bestValueProduct": "Sample Product",
+			"bestValueLink": "https://example.com/product/123",
+			"bestValuePrice": {
+			"etb": 1000,
+			"usd": 20,
+			"fxTimestamp": "2025-09-03T12:00:00Z"
+			},
+			"keyHighlights": [
+			"Most cost-effective option",
+			"High-quality materials and fast delivery"
+			],
+			"summary": "Sample Product offers the best value, balancing price, quality, and speed, while competitors may offer slightly better features but at higher costs."
+		}
+		}
+
+		FEATURE COMPARISON GUIDELINES:
+		- Compare products relative to each other
+		- Highlight strengths, weaknesses, trade-offs, and unique selling points
+		- Use descriptive, human-readable phrases
+		- Tone: analytical, descriptive, detail-oriented, persuasive
+		- If lang='am', feature keys AND values must be in Amharic
+
+		SPECIFIC AREAS TO COMPARE:
+		1. PRICE: ETB, USD, discounts, tax
+		2. QUALITY: product ratings (%v/5) and customer reviews
+		3. SELLER: seller scores (/100) and trust indicators
+		4. DELIVERY: delivery estimates ("%s")
+		5. POPULARITY: number sold (%d units)
+		6. FEATURES: summary bullets and distinctive advantages
+
+		RESPONSE LANGUAGE: %s
+		- 'am' → provide all text, including feature keys, in Amharic
+		- 'en' → provide all text, including feature keys, in English
+
+		PRODUCTS DATA:
+		%s`, len(productDetails), len(productDetails), len(productDetails), deliveryInfo, len(productDetails), lang, string(b))
+
 }
