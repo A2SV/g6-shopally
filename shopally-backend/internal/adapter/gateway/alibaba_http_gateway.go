@@ -169,18 +169,24 @@ func MapAliExpressDetailResponseToProducts(data []byte) ([]*domain.Product, erro
 	return out, nil
 }
 
-func parseFloatOrZero(s string) float64 {
-	s = strings.TrimSpace(s)
-	if s == "" {
+func parseFloatOrZero(value interface{}) float64 {
+	switch v := value.(type) {
+	case string:
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return f
+		}
+		return 0
+	case float64:
+		return v
+	case int:
+		return float64(v)
+	case int64:
+		return float64(v)
+	case float32:
+		return float64(v)
+	default:
 		return 0
 	}
-	s = strings.ReplaceAll(s, ",", "")
-	f, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		log.Printf("[AlibabaGateway] parseFloatOrZero: failed to parse '%s' as float: %v", s, err)
-		return 0
-	}
-	return f
 }
 
 func parsePercentOrZero(s string) float64 {
@@ -253,6 +259,27 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, Keywords string,
 
 	log.Printf("[AlibabaGateway] FetchProducts called with query: '%s' and filters: %+v", Keywords, filters)
 
+	var max_price, min_price string
+	if v, ok := filters["max_sale_price"]; ok {
+		// Convert to float first, then back to string
+		max_price = strconv.FormatFloat(parseFloatOrZero(v), 'f', -1, 64)
+	} else {
+		max_price = "10000"
+	}
+	if v, ok := filters["min_sale_price"]; ok {
+		// Convert to float first, then back to string
+		min_price = strconv.FormatFloat(parseFloatOrZero(v), 'f', -1, 64)
+	} else {
+		min_price = "0"
+	}
+
+	var category_ids string
+	if v, ok := filters["category_ids"]; ok {
+		category_ids = v.(string)
+	} else {
+		category_ids = ""
+	}
+
 	// Initialize params with required fields and **default values**
 	params := map[string]string{
 		"method":          "aliexpress.affiliate.product.query",
@@ -260,11 +287,14 @@ func (a *AlibabaHTTPGateway) FetchProducts(ctx context.Context, Keywords string,
 		"timestamp":       tsStr,
 		"sign_method":     "sha256",
 		"keywords":        Keywords,
-		"page_no":         "1",         // Default page number
-		"page_size":       "10",        // Default page size
-		"target_currency": "USD",       // Default currency
-		"target_language": "en",        // Default language
-		"sort":            "relevancy", // Default sort order
+		"page_no":         "1",          // Default page number
+		"page_size":       "10",         // Default page size
+		"target_currency": "USD",        // Default currency
+		"target_language": "en",         // Default language
+		"sort":            "relevancy",  // Default sort order
+		"category_ids":    category_ids, // No default category filter
+		"max_sale_price":  max_price,
+		"min_sale_price":  min_price,
 
 		// Define all fields we want to receive from the API.
 		// This list should reflect all fields in `aliProduct` that you want populated.
