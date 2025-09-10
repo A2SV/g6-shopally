@@ -1,0 +1,523 @@
+openapi: 3.0.0
+info:
+  title: Shopally Chat History Service API
+  description: This service is responsible for storing, retrieving, and managing user chat sessions and messages.
+  version: 1.0.0
+servers:
+  - url: https://g6-shopally.onrender.com/api/chat-history/v1
+    description: Production API server
+
+tags:
+  - name: Chat History
+    description: Operations related to user chat sessions and messages management.
+
+components:
+  schemas:
+    # --- API Response Envelope ---
+    ApiResponse:
+      type: object
+      properties:
+        data:
+          description: Contains the requested data on success, or null on error.
+          nullable: true
+          # The actual type of 'data' will be defined per endpoint response
+        error:
+          $ref: '#/components/schemas/APIError'
+      description: Consistent JSON structure for all API responses.
+
+    APIError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: A machine-readable string code (e.g., "INVALID_INPUT", "NOT_FOUND", "INTERNAL_SERVER_ERROR", "UNAUTHORIZED").
+          example: "NOT_FOUND"
+        message:
+          type: string
+          description: A more descriptive, human-readable message for the client.
+          example: "Chat session not found"
+      description: Standardized error object returned on API failures.
+
+    # --- Domain Models (from your Go `domain` package) ---
+    Price:
+      type: object
+      properties:
+        etb:
+          type: number
+          format: float
+          description: Price in Ethiopian Birr.
+          example: 1200.50
+        usd:
+          type: number
+          format: float
+          description: Price in US Dollars.
+          example: 25.00
+        fxTimestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the foreign exchange rate was applied (ISO 8601).
+          example: "2025-09-09T14:30:00.000Z"
+      description: Price details for a product, including multiple currencies and FX timestamp.
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the product.
+          example: "prod_abc123"
+        title:
+          type: string
+          description: Name or title of the product.
+          example: "Wireless Bluetooth Headphones"
+        imageUrl:
+          type: string
+          format: url
+          description: URL to the main image of the product.
+          example: "https://example.com/images/headphones.jpg"
+        aiMatchPercentage:
+          type: integer
+          description: AI's confidence score/match percentage for the product (0-100).
+          example: 92
+        price:
+          $ref: '#/components/schemas/Price'
+          description: Nested price details for the product.
+        productRating:
+          type: number
+          format: float
+          description: Average rating of the product.
+          example: 4.5
+        sellerScore:
+          type: integer
+          description: Seller's performance score. Omitted if zero.
+          example: 95
+        deliveryEstimate:
+          type: string
+          description: Estimated delivery time frame.
+          example: "2-3 business days"
+        description:
+          type: string
+          description: Full description of the product.
+          example: "High-quality, noise-cancelling headphones with long battery life, perfect for travel and daily commute."
+        productSmallImageUrls:
+          type: array
+          items:
+            type: string
+            format: url
+          description: Array of URLs to smaller images of the product.
+          example: ["https://example.com/small/hp1.jpg", "https://example.com/small/hp2.jpg"]
+        numberSold:
+          type: integer
+          description: Total number of units sold.
+          example: 1500
+        summaryBullets:
+          type: array
+          items:
+            type: string
+          description: Key features or summary points of the product.
+          example: ["Active Noise Cancellation", "Up to 30 Hours Playtime", "Comfortable Over-Ear Design"]
+        deeplinkUrl:
+          type: string
+          format: url
+          description: Direct URL to the product page on Shopally.
+          example: "https://shopally.com/product/prod_abc123"
+        taxRate:
+          type: number
+          format: float
+          description: Applicable tax rate for the product.
+          example: 0.15
+        discount:
+          type: number
+          format: float
+          description: Discount percentage applied to the product.
+          example: 0.10
+        removeProduct:
+          type: boolean
+          description: Flag indicating if the product should be removed (e.g., from display). Omitted if false.
+          example: false
+      description: Detailed information for a single product.
+
+    Message:
+      type: object
+      required:
+        - user_prompt
+        - created_at
+        - products
+      properties:
+        user_prompt:
+          type: string
+          description: The user's text input/query for this turn.
+          example: "Show me some shoes"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when this message turn was created (ISO 8601).
+          example: "2025-09-09T14:00:00.000Z"
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+          description: Array of products recommended by the AI in response to the user's prompt. Can be empty.
+      description: Represents a single "turn" in a chat session, combining user input and AI product recommendations.
+
+    ChatSession:
+      type: object
+      required:
+        - chat_id
+        - chat_title
+        - start_time
+        - last_updated
+        - messages
+      properties:
+        chat_id:
+          type: string
+          description: Unique identifier for this chat session.
+          example: "generated_chat_id_xyz"
+        chat_title:
+          type: string
+          description: A user-friendly title for the chat session.
+          example: "My Shopping Chat"
+        start_time:
+          type: string
+          format: date-time
+          description: Timestamp when this chat session was initiated (ISO 8601).
+          example: "2025-09-09T14:00:00.000Z"
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp when the chat session had its last activity (e.g., new message added) (ISO 8601).
+          example: "2025-09-09T14:10:30.000Z"
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+          description: Ordered list of messages (interaction turns) within this chat session.
+      description: Represents an individual chat conversation thread.
+
+    # --- Request Body Schemas ---
+    CreateChatRequest:
+      type: object
+      required:
+        - chat_title
+      properties:
+        chat_title:
+          type: string
+          description: The desired title for the new chat session.
+          example: "New Product Exploration"
+      description: Request body for creating a new chat session.
+
+    AddMessageRequest:
+      type: object
+      required:
+        - user_prompt
+        - products
+      properties:
+        user_prompt:
+          type: string
+          description: The user's prompt/message for this turn.
+          example: "I'm looking for a sturdy backpack."
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+          description: An array of products recommended by the AI in response to the user's prompt. Can be empty.
+      description: Request body for adding a new message (turn) to an existing chat session.
+
+  responses:
+    NotFound:
+      description: The requested resource (user chat history or specific chat session) was not found.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "NOT_FOUND"
+                      message:
+                        type: string
+                        example: "No chat history found for test@shopally.com"
+    BadRequest:
+      description: The request body or URL parameters contained invalid or missing data.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "INVALID_INPUT"
+                      message:
+                        type: string
+                        example: "Chat title is required"
+    Unauthorized:
+      description: The request lacks valid authentication credentials.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "UNAUTHORIZED"
+                      message:
+                        type: string
+                        example: "Authentication required"
+    InternalServerError:
+      description: An unexpected internal server error occurred, preventing the request from being fulfilled.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "INTERNAL_SERVER_ERROR"
+                      message:
+                        type: string
+                        example: "Failed to retrieve user chats due to an unexpected server issue."
+
+paths:
+  /users/{user_email}/chats:
+    get:
+      summary: Retrieve All Chat Sessions for a User
+      operationId: getAllChatSessions
+      description: Fetches an array of all chat sessions for the authenticated user identified by `user_email`. This is ideal for displaying a list of recent conversations on a user's history page.
+      tags:
+        - Chat History
+      parameters:
+        - name: user_email
+          in: path
+          required: true
+          description: The email address of the user whose chat sessions are to be retrieved.
+          schema:
+            type: string
+            format: email
+            example: "test@shopally.com"
+      responses:
+        '200':
+          description: Successfully retrieved the list of chat sessions.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ChatSession'
+                        description: An array of chat session objects for the user.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create a New Chat Session
+      operationId: createChatSession
+      description: Initiates a new conversation thread for the specified user. The `chat_title` can be user-provided or a default, and can be updated later.
+      tags:
+        - Chat History
+      parameters:
+        - name: user_email
+          in: path
+          required: true
+          description: The email address of the user for whom the new chat session will be created.
+          schema:
+            type: string
+            format: email
+            example: "test@shopally.com"
+      requestBody:
+        required: true
+        description: Chat session creation request.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChatRequest'
+      responses:
+        '201':
+          description: Successfully created a new chat session.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ChatSession'
+                        description: The details of the newly created chat session.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/{user_email}/chats/{chat_id}:
+    get:
+      summary: Retrieve a Specific Chat Session
+      operationId: getChatSessionById
+      description: Fetches a single `ChatSession` object, including all its messages and embedded product details. This is used when a user clicks on a chat title to view the full conversation.
+      tags:
+        - Chat History
+      parameters:
+        - name: user_email
+          in: path
+          required: true
+          description: The email address of the user who owns the chat session.
+          schema:
+            type: string
+            format: email
+            example: "test@shopally.com"
+        - name: chat_id
+          in: path
+          required: true
+          description: The unique ID of the specific chat session to retrieve.
+          schema:
+            type: string
+            example: "generated_chat_id_xyz"
+      responses:
+        '200':
+          description: Successfully retrieved the specific chat session.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ChatSession'
+                        description: The full details of the requested chat session.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete a Chat Session
+      operationId: deleteChatSession
+      description: Permanently removes a conversation thread and all its messages from the user's history.
+      tags:
+        - Chat History
+      parameters:
+        - name: user_email
+          in: path
+          required: true
+          description: The email address of the user who owns the chat session to be deleted.
+          schema:
+            type: string
+            format: email
+            example: "test@shopally.com"
+        - name: chat_id
+          in: path
+          required: true
+          description: The unique ID of the specific chat session to delete.
+          schema:
+            type: string
+            example: "generated_chat_id_xyz"
+      responses:
+        '204':
+          description: Chat session successfully deleted.
+          # Although 204 typically has no body, the API consistently returns an ApiResponse.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+                        example: null # Data will be null for a 204 success
+                      error:
+                        nullable: true
+                        example: null # Error will be null on success
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/{user_email}/chats/{chat_id}/messages:
+    post:
+      summary: Add a New Message (Turn) to an Existing Chat Session
+      operationId: addMessageToChatSession
+      description: Records a complete interaction turn. The `user_prompt` is the user's input, and `products` is the AI's response (which could be an empty array if no products are recommended for that turn).
+      tags:
+        - Chat History
+      parameters:
+        - name: user_email
+          in: path
+          required: true
+          description: The email address of the user who owns the chat session.
+          schema:
+            type: string
+            format: email
+            example: "test@shopally.com"
+        - name: chat_id
+          in: path
+          required: true
+          description: The ID of the chat session to add the message to.
+          schema:
+            type: string
+            example: "generated_chat_id_xyz"
+      requestBody:
+        required: true
+        description: Message and product details for the new chat turn.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMessageRequest'
+      responses:
+        '201':
+          description: Message successfully added to the chat session.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        nullable: true
+                        example: null # Data will be null for this success response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
