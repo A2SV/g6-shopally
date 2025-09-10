@@ -4,11 +4,12 @@
 import { useDarkMode } from "@/app/components/ProfileComponents/DarkModeContext";
 import ToggleSwitch from "@/app/components/saved-items/ToggleSwitch";
 import { useLanguage } from "@/hooks/useLanguage";
-import { Trash2 } from "lucide-react";
-import { SavedItemUI } from "../../../types/types";
-import { useState } from "react";
+import { useSavedItems } from "@/hooks/useSavedItems";
 import { formatPriceForEthiopia } from "@/utils/priceUtils";
+import { Trash2 } from "lucide-react";
+import { useState } from "react";
 import { FaHeart } from "react-icons/fa";
+import { SavedItemUI } from "../../../types/types";
 
 // Extend SavedItemUI with optional callbacks
 interface SavedItemCardProps extends SavedItemUI {
@@ -55,6 +56,8 @@ export default function SavedItemCard({
     }
     return imageUrl;
   };
+
+  const { refreshPrice } = useSavedItems();
 
   return (
     <div
@@ -207,6 +210,18 @@ export default function SavedItemCard({
             onClick={() => onPlaceOrder?.(id, title, price)}
           >
             {t("Add To Compare")}
+          </button>
+
+          <button
+            className="w-full font-medium py-3 px-6 rounded-xl hover:opacity-80 transition-colors border"
+            style={{
+              backgroundColor: "var(--color-bg-tertiary)",
+              color: "var(--color-text-primary)",
+              borderColor: "var(--color-border-primary)",
+            }}
+            onClick={() => refreshPrice(id)}
+          >
+            {t("Update Price")}
           </button>
 
           <div className="flex gap-3">

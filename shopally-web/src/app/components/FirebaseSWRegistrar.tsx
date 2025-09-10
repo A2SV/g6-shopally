@@ -1,3 +1,4 @@
+//src/app/components/FirebaseSWRegistrar.tsx
 "use client";
 
 import { useEffect } from "react";

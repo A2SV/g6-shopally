@@ -1,8 +1,9 @@
+//src/app/components/SharedLayout.tsx
 "use client";
 
+import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import Sidebar from "./Sidebar";
-import { usePathname } from "next/navigation";
 
 interface SharedLayoutProps {
   children: ReactNode;

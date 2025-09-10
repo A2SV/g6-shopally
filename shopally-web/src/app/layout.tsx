@@ -1,3 +1,4 @@
+//src/app/layout.tsx
 import AuthProvider from "@/providers/AuthProvider";
 import { LanguageProvider } from "@/providers/LanguageProvider";
 import ReduxProvider from "@/providers/ReduxProvider";

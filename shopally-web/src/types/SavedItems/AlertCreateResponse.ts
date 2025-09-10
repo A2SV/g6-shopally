@@ -6,3 +6,8 @@ export interface AlertCreateResponse {
   } | null;
   error: string | null;
 }
+
+export interface AlertCreateResponseSave {
+  data: AlertCreateResponse | null;
+  error: string | null;
+}

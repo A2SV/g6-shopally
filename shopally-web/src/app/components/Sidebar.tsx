@@ -1,3 +1,4 @@
+//src/app/components/Sidebar.tsx
 "use client";
 
 import { signOut } from "next-auth/react";

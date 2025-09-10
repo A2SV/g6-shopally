@@ -4,6 +4,7 @@
 import {
   useCreateAlertMutation,
   useDeleteAlertMutation,
+  useUpdatePriceMutation,
 } from "@/lib/redux/api/userApiSlice";
 import { AlertCreateResponse } from "@/types/SavedItems/AlertCreateResponse";
 import type { SavedItem, SavedItemUI } from "@/types/types";
@@ -30,6 +31,13 @@ const loadLocalDb = (): { savedItems: SavedItemUI[] } => {
     return { savedItems: [] };
   }
 };
+
+// ✅ helper to read deviceId from cookie
+function getDeviceIdFromCookie(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/deviceId=([^;]+)/);
+  return match ? match[1] : null;
+}
 
 export const useSavedItems = (maxItems = 50) => {
   const [savedItems, setSavedItems] = useState<SavedItemUI[]>([]);
@@ -137,13 +145,14 @@ export const useSavedItems = (maxItems = 50) => {
           // TURN ON
           console.log("Turning ON alert...");
 
-          const deviceId =
-            typeof window !== "undefined"
-              ? localStorage.getItem("deviceId") || "default-device"
-              : "default-device";
+          const deviceId = getDeviceIdFromCookie();
+          if (!deviceId) {
+            console.warn("Device ID not ready yet, cannot create alert");
+            return;
+          }
 
           console.log("Using deviceId:", deviceId);
-          console.log(item.title, item.price.usd)
+          console.log(item.title, item.price.usd);
 
           const res: AlertCreateResponse = await createAlert({
             productId: item.id,
@@ -152,7 +161,7 @@ export const useSavedItems = (maxItems = 50) => {
             currentPriceETB: item.price.usd,
           }).unwrap();
 
-          const alertId = res.data?.alertId;
+          const alertId = res.data?.data?.alertId; // ✅ fixed nesting
           console.log("Alert created successfully:", res);
           console.log("alertId from response:", alertId);
 
@@ -238,10 +247,75 @@ export const useSavedItems = (maxItems = 50) => {
     []
   );
 
+  //update price
+  const [updatePriceApi] = useUpdatePriceMutation();
+
+  const refreshPrice = useCallback(
+    async (itemId: string) => {
+      try {
+        // find the product in savedItems
+        const item = savedItems.find((i) => i.id === itemId);
+        if (!item) {
+          console.warn("Product not found in savedItems");
+          return;
+        }
+
+        // call backend
+        const res = await updatePriceApi({ productId: item.id }).unwrap();
+
+        if (res?.data) {
+          // ✅ only update etb and usd, keep fxTimestamp fresh
+          setSavedItems((prev) => {
+            const newList = prev.map((i) =>
+              i.id === itemId
+                ? {
+                    ...i,
+                    price: {
+                      ...i.price, // keep old fxTimestamp or other keys
+                      etb: res.data?.updated_price_etb ?? i.price.etb,
+                      usd: res.data?.updated_price_usd ?? i.price.usd,
+                      fxTimestamp: new Date().toISOString(),
+                    },
+                  }
+                : i
+            );
+
+            // log immediately inside updater
+            console.log("📦 savedItems inside refreshPrice updater:", newList);
+
+            localStorage.setItem(
+              LOCAL_DB_KEY,
+              JSON.stringify({ savedItems: newList })
+            );
+            console.log("📦 savedItems inside refreshPrice updater:", newList);
+            return newList;
+          });
+
+          // log after state update (next tick)
+          setTimeout(() => {
+            console.log("📦 savedItems after state update:", savedItems);
+          }, 0);
+
+          console.log("✅ Price updated in localStorage & state:", {
+            etb: res.data.updated_price_etb,
+            usd: res.data.updated_price_usd,
+          });
+        }
+      } catch (err) {
+        console.error("❌ Failed to refresh price:", err);
+      }
+    },
+    [savedItems, updatePriceApi]
+  );
+
   const clearAll = useCallback(() => {
     setSavedItems([]);
     localStorage.removeItem(LOCAL_DB_KEY);
   }, []);
+
+  useEffect(() => {
+    console.log("📝 savedItems changed:", savedItems);
+  }, [savedItems]);
 
   return {
     savedItems,
@@ -251,6 +325,7 @@ export const useSavedItems = (maxItems = 50) => {
     alertChange,
     updateItemPrice,
     placeOrder,
+    refreshPrice,
     clearAll,
   };
 };

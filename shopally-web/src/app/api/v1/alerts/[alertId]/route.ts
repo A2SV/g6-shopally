@@ -1,6 +1,6 @@
 //src/app/api/v1/alerts/[alertId]/route.ts
-import { getLanguage } from "@/lib/redux/languageBridge";
 import { AlertCreateResponse } from "@/types/SavedItems/AlertCreateResponse";
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 const API_BASE = process.env.API_BASE;
@@ -12,17 +12,21 @@ export async function DELETE(
   const { alertId } = await context.params;
 
   try {
-    // ✅ Get deviceId from headers
-    const deviceId = req.headers.get("x-device-id");
+    const cookieStore = await cookies();
+    const deviceId = cookieStore.get("deviceId")?.value;
+    const langCode = cookieStore.get("lang")?.value || "en";
 
+    // If deviceId is missing, inform client to wait for FCM token
     if (!deviceId) {
       return NextResponse.json(
-        { error: "Device ID is required", data: null },
-        { status: 400 }
+        {
+          error:
+            "Device ID not available yet. Please wait for notifications setup.",
+          data: null,
+        },
+        { status: 409 } // 409 Conflict to indicate precondition not met
       );
     }
-
-    const langCode = getLanguage() || "en-US";
 
     const backendRes = await fetch(`${API_BASE}/api/v1/alerts/${alertId}`, {
       method: "DELETE",

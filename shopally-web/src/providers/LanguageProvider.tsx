@@ -23,7 +23,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [currentLanguage, setCurrentLanguage] = useState<Language>("English");
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const translationCache = new Map<string, string>();
-  const langCode = currentLanguage === "Amharic" ? "am-ET" : "en-US"; // :white_check_mark: mapping
+  const langCode = currentLanguage === "Amharic" ? "am" : "en"; // :white_check_mark: mapping
   const translateText = useCallback(
     async (text: string) => {
       // Skip translation for ShopAlly product name

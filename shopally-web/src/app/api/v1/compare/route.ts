@@ -1,7 +1,7 @@
 // src/app/api/v1/compare/route.ts
-import { getLanguage } from "@/lib/redux/languageBridge";
 import { ComparisonResponse } from "@/types/Compare/Comparison";
 import { Product } from "@/types/types";
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 const API_BASE = process.env.API_BASE;
@@ -28,9 +28,10 @@ export async function POST(
     const body = await req.json();
     const { products } = body;
 
-    // Get deviceId and language from headers
-    const deviceId = req.headers.get("x-device-id");
-    const acceptLanguage = req.headers.get("accept-language") || "en-US";
+    // Get deviceId and Language from cookies
+    const cookieStore = await cookies();
+    const deviceId = cookieStore.get("deviceId")?.value;
+    const langCode = cookieStore.get("lang")?.value || "en";
 
     if (
       !products ||
@@ -53,8 +54,6 @@ export async function POST(
         { status: 400 }
       );
     }
-
-    const langCode = getLanguage() || "en-US";
 
     const backendRes = await fetch(`${API_BASE}/api/v1/compare`, {
       method: "POST",

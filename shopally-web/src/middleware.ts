@@ -5,7 +5,23 @@ import { NextResponse } from "next/server";
 export default withAuth(
   function middleware(req) {
     console.log("middleware called on:", req.nextUrl.pathname);
-    return NextResponse.next();
+
+    const res = NextResponse.next();
+
+    // ✅ Check if deviceId cookie exists
+    const deviceId = req.cookies.get("deviceId")?.value;
+    if (!deviceId) {
+      const newId = crypto.randomUUID();
+      res.cookies.set("deviceId", newId, {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365,
+      });
+      console.log("Generated new deviceId:", newId);
+    } else {
+      console.log("Existing deviceId:", deviceId);
+    }
+
+    return res;
   },
   {
     callbacks: {
@@ -16,14 +32,11 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    // "/((?!api/auth|_next/static|_next/image|favicon.ico|SignUp|SignIn|data|profile|comparison|saved-items|home|WebsiteLogo/Frame.png).*)",
-    // "/((?!api/auth|_next/static|_next/image|favicon.ico|images|WebsiteLogo).*)",
-    // Only protect specific existing routes
     "/",
     "/home",
-    "/comparison", 
+    "/comparison",
     "/saved-items",
     "/profile",
-    "/how-it-works"
+    "/how-it-works",
   ],
 };

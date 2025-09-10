@@ -7,32 +7,30 @@ import { useEffect, useState } from "react";
 
 const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY!;
 
-// Type for Firebase notification payload
 interface FCMNotification {
   title?: string;
   body?: string;
   icon?: string;
 }
 
-/**
- * Ask user for browser notification permission.
- */
 async function requestPermission(): Promise<NotificationPermission> {
   console.log("🔄 Requesting notification permission...");
   const permission = await Notification.requestPermission();
-
   if (permission === "granted")
     console.log("✅ Notification permission granted.");
   else if (permission === "denied")
     console.warn("❌ Notification permission denied.");
   else console.log("⚠️ Notification permission dismissed.");
-
   return permission;
 }
 
-/**
- * Custom React hook for Firebase Cloud Messaging
- */
+function saveTokenToCookies(token: string) {
+  document.cookie = `deviceId=${token}; path=/; max-age=${
+    60 * 60 * 24 * 30
+  }; secure; samesite=strict`;
+  console.log("🍪 Saved FCM token into cookies");
+}
+
 export function useFirebaseMessaging() {
   const [token, setToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<FCMNotification | null>(
@@ -40,19 +38,24 @@ export function useFirebaseMessaging() {
   );
 
   useEffect(() => {
-    if (!messaging) return;
+    if (!messaging) {
+      console.warn("⚠️ Firebase messaging is not available.");
+      return;
+    }
+    const messagingInstance = messaging;
 
     const initFCM = async () => {
       const permission = await requestPermission();
       if (permission !== "granted") return;
 
       try {
-        if (!messaging) return;
-
-        const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
+        const currentToken = await getToken(messagingInstance, {
+          vapidKey: VAPID_KEY,
+        });
         if (currentToken) {
           console.log("✅ FCM Token:", currentToken);
           setToken(currentToken);
+          saveTokenToCookies(currentToken);
         } else {
           console.warn("⚠️ No registration token available.");
         }
@@ -63,8 +66,7 @@ export function useFirebaseMessaging() {
 
     initFCM();
 
-    // Listen for foreground messages
-    const unsubscribe = onMessage(messaging, (payload) => {
+    const unsubscribeOnMessage = onMessage(messagingInstance, (payload) => {
       console.log("📩 Foreground message received:", payload);
       setNotification(payload.notification ?? null);
 
@@ -76,7 +78,7 @@ export function useFirebaseMessaging() {
       }
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeOnMessage();
   }, []);
 
   return { token, notification };
