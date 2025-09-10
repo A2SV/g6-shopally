@@ -4,7 +4,7 @@ info:
   description: This service is responsible for storing, retrieving, and managing user chat sessions and messages.
   version: 1.0.0
 servers:
-  - url: http://localhost:8080/api/chat-history/v1
+  - url: https://g6-shopally.onrender.com/api/chat-history/v1
     description: Production API server
 
 tags:

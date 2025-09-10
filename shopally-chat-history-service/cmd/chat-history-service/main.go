@@ -17,6 +17,9 @@ import (
 	"github.com/shopally/chat-history/internal/platform/mongodb"
 	"github.com/shopally/chat-history/internal/repository"
 	"github.com/shopally/chat-history/internal/service"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
@@ -49,6 +52,24 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 	router.RegisterRoutes(r, chatHandler)
+
+
+	yamlFilePath := "./docs/shopally-chat-history-api.yaml"
+
+	// Check if the YAML file exists
+	if _, err := os.Stat(yamlFilePath); os.IsNotExist(err) {
+		log.Printf("Warning: OpenAPI YAML file not found at %s. Swagger UI will not be available. Error: %v", yamlFilePath, err)
+	} else {
+		// Serve the raw YAML file
+		r.StaticFile("/swagger.yaml", yamlFilePath)
+
+		// Set up Swagger UI to point to the served YAML
+		// The URL `ginSwagger.URL("/swagger.yaml")` should point to the endpoint where your YAML file is served.
+		swaggerURL := ginSwagger.URL("/swagger.yaml")
+		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, swaggerURL))
+		log.Printf("Swagger UI available at http://localhost:%s/swagger/index.html", cfg.Port)
+		log.Printf("Raw OpenAPI YAML available at http://localhost:%s/swagger.yaml", cfg.Port)
+	}
 
 	// HTTP server with graceful shutdown
 	srv := &http.Server{
